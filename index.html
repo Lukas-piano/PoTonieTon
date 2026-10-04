@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Po tonie ton</title>
+<meta name="description" content="Narzędzia do ćwiczenia muzyki w przeglądarce: akordy, interwały wokalne i metronom. Bez konta i bez instalacji.">
+<meta name="theme-color" content="#1e1b19">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<!-- Po publikacji pod innym adresem zmień poniższe trzy adresy (patrz README). -->
+<link rel="canonical" href="https://lukas-piano.github.io/Po_tonie_ton/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:site_name" content="Po tonie ton">
+<meta property="og:title" content="Po tonie ton — ćwicz rytm, poznawaj akordy, rozwijaj słuch">
+<meta property="og:description" content="Narzędzia do ćwiczenia muzyki w przeglądarce: akordy, interwały wokalne i metronom.">
+<meta property="og:url" content="https://lukas-piano.github.io/Po_tonie_ton/">
+<meta property="og:image" content="https://lukas-piano.github.io/Po_tonie_ton/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Po tonie ton — narzędzia do ćwiczenia muzyki">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="assets/portal.css">
+</head>
+<body>
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="Po tonie ton — strona główna">Po tonie <span>ton</span></a>
+  <nav class="nav" aria-label="Główna">
+    <a href="#narzedzia">Narzędzia</a>
+    <a href="#rozwoj">Co dalej</a>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="wrap hero">
+    <h1>Ćwicz rytm, poznawaj akordy, <em>rozwijaj słuch</em></h1>
+    <p>Kilka narzędzi do codziennej pracy przy instrumencie i z głosem. Działają w przeglądarce, na telefonie i komputerze, bez zakładania konta.</p>
+    <a class="btn btn--primary" href="#narzedzia">Przejdź do narzędzi</a>
+    <div class="keyboard" id="klawiatura"></div>
+  </section>
+
+  <section class="wrap tools" id="narzedzia" aria-labelledby="narzedzia-tytul">
+    <div class="section-head">
+      <h2 id="narzedzia-tytul">Narzędzia</h2>
+      <p>Wybierz i zacznij ćwiczyć.</p>
+    </div>
+    <ul class="cards" id="lista-aplikacji">
+      <!-- Karty rysuje assets/portal.js z katalogu assets/apps.js. Poniżej wersja bez JavaScriptu. -->
+      <li class="card"><div class="card__body"><h3 class="card__title">Metronom</h3></div><div class="card__foot"><a class="btn btn--primary" data-app href="metronom/">Uruchom</a></div></li>
+      <li class="card"><div class="card__body"><h3 class="card__title">Akordy</h3></div><div class="card__foot"><a class="btn btn--primary" data-app href="akordy/">Uruchom</a></div></li>
+      <li class="card"><div class="card__body"><h3 class="card__title">Interwały wokalne</h3></div><div class="card__foot"><a class="btn btn--primary" data-app href="interwaly/">Uruchom</a></div></li>
+    </ul>
+    <p class="growing" id="rozwoj">Kolekcja będzie rosła. Kolejne narzędzia pojawią się tutaj, gdy będą gotowe.</p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <span>Po tonie ton · narzędzia do ćwiczenia muzyki</span>
+  <span>Dźwięk z mikrofonu jest analizowany na Twoim urządzeniu. Nic nie jest nagrywane ani wysyłane.</span>
+</footer>
+
+<script src="assets/portal-link.js"></script>
+<script src="assets/apps.js"></script>
+<script src="assets/portal.js"></script>
+</body>
+</html>
