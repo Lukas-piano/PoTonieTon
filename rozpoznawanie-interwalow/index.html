@@ -282,6 +282,7 @@
         <ul>
           <li>Użyj słuchawek — dźwięk z głośnika może mylić mikrofon.</li>
           <li>Rozpoznawanie mowy wymaga internetu, a nagranie trafia do usługi przeglądarki. Najlepiej działa w Chrome i Edge.</li>
+          <li>Telefon może sam odtwarzać krótki sygnał przy włączaniu mikrofonu. To dźwięk systemu, nie aplikacji.</li>
           <li>Jeśli mówisz, gdy czas się kończy, aplikacja czeka jeszcze do 1 sekundy na rozpoznanie.</li>
         </ul>
       </div>
@@ -610,7 +611,7 @@
       var rec;
       try { rec = new SR(); } catch (e) { fatal('unsupported'); return; }
       var s = { rec: rec, discard: false, byUs: false, live: false, gotResult: false,
-                startedAt: clock.now(), firstSeen: {}, done: {}, safety: null };
+                startedAt: clock.now(), firstSeen: {}, done: {}, stale: {}, safety: null };
       rec.lang = lang;
       rec.continuous = true;
       rec.interimResults = true;
@@ -656,6 +657,7 @@
       s.gotResult = true; quickFails = 0;
       for (var i = 0; i < e.results.length; i++) {
         var r = e.results[i];
+        if (s.stale[i]) continue;                    // wypowiedź sprzed ostatniego mark()
         if (s.firstSeen[i] == null) s.firstSeen[i] = now;
         var txt = (r[0] && r[0].transcript) || '';
         if (r.isFinal) {
@@ -679,6 +681,15 @@
       listen: function () {
         want = true; quickFails = 0;
         if (!session && restartTimer == null) begin();
+      },
+      /**
+       * Odrzuć wszystko, co dotąd usłyszano, NIE przerywając sesji nasłuchu.
+       * Każdy start/stop rozpoznawania może na telefonie wywołać systemowy sygnał,
+       * więc między pytaniami sesja zostaje ta sama, a stare wypowiedzi są pomijane.
+       */
+      mark: function () {
+        pending = null;
+        if (session) Object.keys(session.firstSeen).forEach(function (k) { session.stale[k] = true; });
       },
       /** Odrzuć wszystko, co dotąd usłyszano, i zacznij świeżą sesję. */
       flush: function () {
@@ -745,14 +756,13 @@
     }
 
     function nextQuestion() {
-      var first = !S.round;
       var q = pickQuestion(d.rng, S.round ? S.round.notes[0] : null);
       var r = { id: ++seq, semitones: q.semitones, root: q.root, notes: q.notes, descending: q.descending, settled: false, openAt: null, deadline: null,
                 stage: S.stage, limitMs: stageLimitMs(S.stage) };   // pełny limit aktualnego etapu
       S.round = r; S.state = 'playing';
       S.heard = ''; S.notice = null; S.feedback = null; S.replaying = false;
       d.speech.listen();
-      if (!first) d.speech.flush();      // stare wyniki rozpoznawania przepadają
+      d.speech.mark();                   // stare wyniki przepadają, ale sesja nasłuchu trwa (bez restartu)
       var dur = d.audio.play(r.notes);
       if (dur == null) { finish('technical', { code: 'audio' }); return; }
       setT('phase', function () { openWindow(r); }, dur);
@@ -765,7 +775,7 @@
       r.openAt = now;
       r.deadline = now + r.limitMs;       // jedyny termin końcowy rundy
       S.state = 'answering';
-      if (d.speech.pending()) d.speech.flush();  // to, co „usłyszano” w trakcie grania, odrzucamy
+      d.speech.mark();                   // to, co „usłyszano” w trakcie grania, odrzucamy — bez restartu sesji
       armDeadline(r);
       emit();
     }
@@ -1002,7 +1012,7 @@
       }
     }) : {
       listen: function () { game.onFatal('unsupported'); }, flush: function () {}, finishNow: function () { return false; },
-      shutdown: function () {}, pending: function () { return null; }, state: function () { return 'off'; }
+      shutdown: function () {}, mark: function () {}, pending: function () { return null; }, state: function () { return 'off'; }
     };
 
     game = createGame({
