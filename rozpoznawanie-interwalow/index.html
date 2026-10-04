@@ -379,21 +379,21 @@
 
   // Jawny słownik: formy po normalizacji (małe litery, bez polskich znaków).
   var NOUN_FORMS = {
-    sekunda: ['sekunda', 'sekunde', 'sekundy'],
-    tercja:  ['tercja', 'tercje', 'tercji'],
-    kwarta:  ['kwarta', 'kwarte', 'kwarty'],
-    kwinta:  ['kwinta', 'kwinte', 'kwinty'],
-    seksta:  ['seksta', 'sekste', 'seksty', 'sexta'],
-    septyma: ['septyma', 'septyme', 'septymy', 'septima'],
-    oktawa:  ['oktawa', 'oktawe', 'oktawy'],
-    tryton:  ['tryton', 'trytonu', 'triton']
+    sekunda: ['sekunda', 'sekunde', 'sekundy', 'sekund', 'secunda'],
+    tercja:  ['tercja', 'tercje', 'tercji', 'tercia', 'tertia', 'tercjo'],
+    kwarta:  ['kwarta', 'kwarte', 'kwarty', 'quarta'],
+    kwinta:  ['kwinta', 'kwinte', 'kwinty', 'quinta'],
+    seksta:  ['seksta', 'sekste', 'seksty', 'sexta', 'sexte', 'seksa'],
+    septyma: ['septyma', 'septyme', 'septymy', 'septima', 'septime'],
+    oktawa:  ['oktawa', 'oktawe', 'oktawy', 'octava', 'oktava'],
+    tryton:  ['tryton', 'trytonu', 'triton', 'trytony']
   };
   var QUAL_FORMS = {
-    mala:        ['mala', 'malej'],
-    wielka:      ['wielka', 'wielkiej'],
-    czysta:      ['czysta', 'czystej'],
-    zwiekszona:  ['zwiekszona', 'zwiekszonej'],
-    zmniejszona: ['zmniejszona', 'zmniejszonej']
+    mala:        ['mala', 'malej', 'male', 'malo', 'maly'],
+    wielka:      ['wielka', 'wielkiej', 'wielki', 'wielkie'],
+    czysta:      ['czysta', 'czystej', 'czysty', 'czyste'],
+    zwiekszona:  ['zwiekszona', 'zwiekszonej', 'zwiekszone', 'zwiekszony'],
+    zmniejszona: ['zmniejszona', 'zmniejszonej', 'zmniejszone', 'zmniejszony']
   };
   // Dozwolone pary rzeczownik + określenie (w dowolnej kolejności, ale obok siebie).
   var PAIRS = {
@@ -420,7 +420,7 @@
       .replace(/\u0142/g, 'l')
       .replace(/[^a-z0-9]+/g, ' ')
       .trim()
-      .replace(/\btry ton\b/g, 'tryton');
+      .replace(/\btr[yi] ton\b/g, 'tryton');
   }
 
   /**
@@ -428,11 +428,44 @@
    * 'answer' tylko wtedy, gdy wypowiedź zawiera dokładnie jedną kompletną nazwę
    * i żadnych innych, niedopasowanych słów ze słownika interwałów.
    */
+  /** Czy dwa słowa różnią się najwyżej jedną literą (zamiana, brak lub nadmiar)? */
+  function nearlySame(a, b) {
+    var la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    var i = 0, j = 0, edits = 0;
+    while (i < la && j < lb) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (la > lb) i++; else if (lb > la) j++; else { i++; j++; }
+    }
+    return edits + (la - i) + (lb - j) <= 1;
+  }
+  /**
+   * Słowo → pojęcie ze słownika. Najpierw dokładnie; potem z tolerancją jednej litery,
+   * ale tylko dla dłuższych słów i tylko gdy pasuje dokładnie jedno pojęcie
+   * (np. „kwanta” leży między kwartą a kwintą, więc nie pasuje do żadnej).
+   */
+  function lookupWord(w, lookup, forms) {
+    if (lookup[w]) return lookup[w];
+    if (w.length < 5) return null;
+    var hit = null, keys = Object.keys(forms);
+    for (var k = 0; k < keys.length; k++) {
+      var list = forms[keys[k]];
+      for (var f = 0; f < list.length; f++) {
+        if (list[f].length >= 6 && nearlySame(w, list[f])) {
+          if (hit && hit !== keys[k]) return null;
+          hit = keys[k];
+        }
+      }
+    }
+    return hit;
+  }
+
   function parseAnswer(text) {
     var norm = normalizeText(text);
     if (!norm) return { kind: 'none', normalized: norm };
     var tokens = norm.split(' ').map(function (w) {
-      return { noun: NOUN_LOOKUP[w] || null, qual: QUAL_LOOKUP[w] || null };
+      return { noun: lookupWord(w, NOUN_LOOKUP, NOUN_FORMS), qual: lookupWord(w, QUAL_LOOKUP, QUAL_FORMS) };
     });
     var found = {}, covered = [];
     for (var i = 0; i < tokens.length; i++) {
@@ -619,7 +652,7 @@
       rec.lang = lang;
       rec.continuous = true;
       rec.interimResults = true;
-      rec.maxAlternatives = 1;
+      rec.maxAlternatives = 5;           // rozpoznawanie podaje kilka wariantów — sprawdzamy wszystkie
       rec.onstart = function () {
         if (session !== s) return;
         s.live = true; startFails = 0;
@@ -688,7 +721,16 @@
         var raw = (r[0] && r[0].transcript) || '';
         var txt = s.base[i] != null ? stripPrefix(raw, s.base[i]) : raw;
         if (r.isFinal) {
-          if (!s.done[i]) { s.done[i] = true; if (txt) finals.push({ text: txt, at: s.firstSeen[i] }); }
+          if (!s.done[i]) {
+            s.done[i] = true;
+            var alts = [];
+            for (var j = 0; j < r.length; j++) {
+              var alt = (r[j] && r[j].transcript) || '';
+              if (s.base[i] != null) alt = stripPrefix(alt, s.base[i]);
+              if (alt && alts.indexOf(alt) < 0) alts.push(alt);
+            }
+            if (txt) finals.push({ text: txt, at: s.firstSeen[i], alts: alts });
+          }
         } else {
           s.lastText[i] = raw;
           if (txt) {
@@ -702,7 +744,7 @@
       if (pending) sink.onInterim(pending.text, pending.firstSeenAt);
       for (var k = 0; k < finals.length; k++) {
         if (s.discard) break;
-        sink.onFinal(finals[k].text, finals[k].at);
+        sink.onFinal(finals[k].text, finals[k].at, finals[k].alts);
       }
     }
 
@@ -954,9 +996,14 @@
         if (!r || r.settled || (S.state !== 'answering' && S.state !== 'grace')) return;
         if (firstSeenAt < r.openAt) return;
         S.heard = text;
+        // Poprawną nazwę zaliczamy od razu, gdy tylko pojawi się w rozpoznawanym tekście —
+        // bez czekania na „ostateczną” wersję. Błędu nigdy nie oceniamy po wersji roboczej.
+        var early = parseAnswer(text);
+        if (S.state === 'answering' && d.clock.now() < r.deadline &&
+            early.kind === 'answer' && early.semitones === r.semitones) { award(r); return; }
         emit();
       },
-      onFinal: function (text, firstSeenAt) {
+      onFinal: function (text, firstSeenAt, alts) {
         var r = S.round;
         if (!r || r.settled) return;                                  // stare / podwójne zdarzenia
         var now = d.clock.now();
@@ -965,6 +1012,14 @@
         if (firstSeenAt < r.openAt) return;                           // wypowiedź sprzed pytania
         var p = parseAnswer(text);
         S.heard = text;
+        if (p.kind !== 'answer' && alts) {
+          // Główny wariant nie jest nazwą interwału: sprawdzamy pozostałe warianty,
+          // ale przyjmujemy z nich tylko poprawną odpowiedź (nigdy nie kończą gry błędem).
+          for (var i = 0; i < alts.length; i++) {
+            var q = parseAnswer(alts[i]);
+            if (q.kind === 'answer' && q.semitones === r.semitones) { p = q; S.heard = alts[i]; break; }
+          }
+        }
         if (p.kind === 'answer') {
           if (p.semitones === r.semitones) award(r);
           else finish('wrong', { said: p.semitones });
@@ -1056,8 +1111,8 @@
         onInterim: function (t, at) {
           if (mode === 'test') showTestHeard(t, false); else game.onInterim(t, at);
         },
-        onFinal: function (t, at) {
-          if (mode === 'test') showTestHeard(t, true); else game.onFinal(t, at);
+        onFinal: function (t, at, alts) {
+          if (mode === 'test') showTestHeard(t, true, alts); else game.onFinal(t, at, alts);
         },
         onFatal: function (code) {
           if (mode === 'test') { endTest(); el.testStatus.textContent = ERROR_TEXT[code] || 'Błąd mikrofonu.'; el.testStatus.className = 'err'; }
@@ -1130,7 +1185,12 @@
       if (s === 'listening') { el.testStatus.textContent = 'Słucham — powiedz np. „kwinta czysta”.'; el.testStatus.className = 'ok'; }
       else if (s === 'starting') { el.testStatus.textContent = 'Uruchamiam nasłuch… Zezwól na mikrofon, jeśli przeglądarka o to pyta.'; el.testStatus.className = 'muted'; }
     }
-    function showTestHeard(text, isFinal) {
+    function showTestHeard(text, isFinal, alts) {
+      if (isFinal && alts && parseAnswer(text).kind !== 'answer') {
+        for (var i = 0; i < alts.length; i++) {
+          if (parseAnswer(alts[i]).kind === 'answer') { text = alts[i]; break; }
+        }
+      }
       el.testHeard.innerHTML = '';
       el.testHeard.appendChild(doc.createTextNode(isFinal ? 'Usłyszałem: ' : 'Słyszę: '));
       var q = doc.createElement('q'); q.textContent = text; el.testHeard.appendChild(q);
