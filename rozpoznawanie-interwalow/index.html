@@ -352,6 +352,8 @@
     pointsPerCorrect: 10,
     stageNoticeMs: 2000, // informacja o nowym etapie przed kolejnym pytaniem
     graceMs: 1000,       // maks. oczekiwanie na finalizację wypowiedzi po zerze
+    armMaxMs: 1500,      // najdłuższe czekanie z pytaniem na gotowość mikrofonu
+    audioReadyFallbackMs: 2500, // gdy przeglądarka nie zgłasza początku przechwytywania dźwięku
     feedbackMs: 800,     // pauza po poprawnej odpowiedzi
     urgentMs: 3000,      // wyróżnienie końcówki czasu
     noteSec: 0.6,
@@ -575,6 +577,7 @@
     var SR = opts.SR, clock = opts.clock, sink = opts.sink, lang = opts.lang || CONFIG.lang;
     var want = false, session = null, restartTimer = null;
     var quickFails = 0, startFails = 0, pending = null, state = 'off';
+    var audioStartSeen = false;   // ta przeglądarka zgłasza początek przechwytywania dźwięku
 
     function setState(s) { if (state !== s) { state = s; sink.onState(s); } }
 
@@ -611,7 +614,8 @@
       var rec;
       try { rec = new SR(); } catch (e) { fatal('unsupported'); return; }
       var s = { rec: rec, discard: false, byUs: false, live: false, gotResult: false,
-                startedAt: clock.now(), firstSeen: {}, done: {}, stale: {}, safety: null };
+                ready: false, readyTimer: null,
+                startedAt: clock.now(), firstSeen: {}, done: {}, stale: {}, base: {}, lastText: {}, safety: null };
       rec.lang = lang;
       rec.continuous = true;
       rec.interimResults = true;
@@ -619,8 +623,13 @@
       rec.onstart = function () {
         if (session !== s) return;
         s.live = true; startFails = 0;
-        if (!s.discard && want) setState('listening');
+        // „Słucham” dopiero, gdy mikrofon naprawdę przechwytuje dźwięk (audiostart);
+        // zapas czasowy tylko dla przeglądarek, które tego zdarzenia nie wysyłają.
+        if (!s.ready && s.readyTimer == null && !audioStartSeen) {
+          s.readyTimer = clock.setTimeout(function () { s.readyTimer = null; ready(s); }, CONFIG.audioReadyFallbackMs);
+        }
       };
+      rec.onaudiostart = function () { audioStartSeen = true; s.live = true; ready(s); };
       rec.onresult = function (e) { if (session === s && !s.discard) handleResult(s, e); };
       rec.onerror = function (e) {
         if (session !== s) return;
@@ -639,8 +648,25 @@
       }
     }
 
+    function ready(s) {
+      if (session !== s || s.ready) return;
+      s.ready = true;
+      if (s.readyTimer != null) { clock.clearTimeout(s.readyTimer); s.readyTimer = null; }
+      if (!s.discard && want) setState('listening');
+    }
+
+    /** Usuwa z tekstu to, co było już rozpoznane przed otwarciem okna odpowiedzi. */
+    function stripPrefix(text, base) {
+      var t = text.trim().split(/\s+/), b = base.trim().split(/\s+/).filter(Boolean);
+      for (var i = 0; i < b.length; i++) {
+        if (!t[i] || t[i].toLowerCase() !== b[i].toLowerCase()) return text;
+      }
+      return t.slice(b.length).join(' ');
+    }
+
     function ended(s) {
       session = null; pending = null;
+      if (s.readyTimer != null) { clock.clearTimeout(s.readyTimer); s.readyTimer = null; }
       if (s.safety != null) { clock.clearTimeout(s.safety); s.safety = null; }
       if (!want) { if (state !== 'error') setState('off'); return; }
       if (!s.byUs) {
@@ -649,7 +675,7 @@
         if (quickFails >= 6) { fatal('service'); return; }
       }
       setState('starting');
-      schedule(s.byUs ? 60 : 200);
+      schedule(s.byUs ? 60 : 40);        // sesja skończyła się sama (typowe na Androidzie) — wznawiamy od razu
     }
 
     function handleResult(s, e) {
@@ -659,12 +685,16 @@
         var r = e.results[i];
         if (s.stale[i]) continue;                    // wypowiedź sprzed ostatniego mark()
         if (s.firstSeen[i] == null) s.firstSeen[i] = now;
-        var txt = (r[0] && r[0].transcript) || '';
+        var raw = (r[0] && r[0].transcript) || '';
+        var txt = s.base[i] != null ? stripPrefix(raw, s.base[i]) : raw;
         if (r.isFinal) {
-          if (!s.done[i]) { s.done[i] = true; finals.push({ text: txt, at: s.firstSeen[i] }); }
+          if (!s.done[i]) { s.done[i] = true; if (txt) finals.push({ text: txt, at: s.firstSeen[i] }); }
         } else {
-          interim += txt + ' ';
-          if (first == null || s.firstSeen[i] < first) first = s.firstSeen[i];
+          s.lastText[i] = raw;
+          if (txt) {
+            interim += txt + ' ';
+            if (first == null || s.firstSeen[i] < first) first = s.firstSeen[i];
+          }
         }
       }
       interim = interim.trim();
@@ -687,9 +717,20 @@
        * Każdy start/stop rozpoznawania może na telefonie wywołać systemowy sygnał,
        * więc między pytaniami sesja zostaje ta sama, a stare wypowiedzi są pomijane.
        */
-      mark: function () {
+      mark: function (keepOpenUtterance) {
         pending = null;
-        if (session) Object.keys(session.firstSeen).forEach(function (k) { session.stale[k] = true; });
+        if (!session) return;
+        var s = session, now = clock.now();
+        Object.keys(s.firstSeen).forEach(function (k) {
+          if (keepOpenUtterance && !s.done[k] && !s.stale[k]) {
+            // Wypowiedź właśnie trwa: nie wyrzucamy jej w całości (zgubilibyśmy szybką odpowiedź),
+            // tylko pomijamy to, co rozpoznano do tej chwili.
+            s.base[k] = s.lastText[k] || '';
+            s.firstSeen[k] = now;
+          } else {
+            s.stale[k] = true;
+          }
+        });
       },
       /** Odrzuć wszystko, co dotąd usłyszano, i zacznij świeżą sesję. */
       flush: function () {
@@ -727,7 +768,7 @@
     var S = {
       state: 'idle', score: 0, correct: 0, stage: 1, stageCorrect: 0, best: d.storage.load(), newBest: false,
       round: null, heard: '', notice: null, feedback: null, result: null,
-      replaying: false, micState: 'off', error: null
+      replaying: false, arming: false, micState: 'off', error: null
     };
     var seq = 0, timers = {};
 
@@ -761,8 +802,20 @@
                 stage: S.stage, limitMs: stageLimitMs(S.stage) };   // pełny limit aktualnego etapu
       S.round = r; S.state = 'playing';
       S.heard = ''; S.notice = null; S.feedback = null; S.replaying = false;
-      d.speech.listen();
+      d.speech.listen();                 // nic nie robi, jeśli sesja nasłuchu już trwa
       d.speech.mark();                   // stare wyniki przepadają, ale sesja nasłuchu trwa (bez restartu)
+      var micReady = !d.speech.state || d.speech.state() === 'listening';
+      if (micReady) { startPlayback(r); return; }
+      // Mikrofon właśnie się wznawia: czekamy z dźwiękami, żeby był gotowy, zanim skończy się drugi dźwięk.
+      S.arming = true;
+      setT('arm', function () { startPlayback(r); }, CONFIG.armMaxMs);
+      emit();
+    }
+
+    function startPlayback(r) {
+      if (S.round !== r || S.state !== 'playing' || r.started) return;
+      r.started = true; S.arming = false;
+      clearT('arm');
       var dur = d.audio.play(r.notes);
       if (dur == null) { finish('technical', { code: 'audio' }); return; }
       setT('phase', function () { openWindow(r); }, dur);
@@ -775,7 +828,7 @@
       r.openAt = now;
       r.deadline = now + r.limitMs;       // jedyny termin końcowy rundy
       S.state = 'answering';
-      d.speech.mark();                   // to, co „usłyszano” w trakcie grania, odrzucamy — bez restartu sesji
+      d.speech.mark(true);               // to, co rozpoznano w trakcie grania, nie liczy się; trwająca wypowiedź nie przepada
       armDeadline(r);
       emit();
     }
@@ -849,7 +902,7 @@
       if (r) r.settled = true;
       clearAll();
       S.state = 'over';
-      S.replaying = false; S.notice = null; S.feedback = null;
+      S.replaying = false; S.arming = false; S.notice = null; S.feedback = null;
       S.result = {
         reason: reason,
         answer: r ? r.semitones : null,
@@ -892,6 +945,7 @@
       onMicState: function (s) {
         S.micState = s;
         if (s === 'listening' && S.state === 'preparing') { nextQuestion(); return; }
+        if (s === 'listening' && S.state === 'playing' && S.arming) { startPlayback(S.round); return; }
         if (s === 'off' && S.state === 'grace') { finish('timeout'); return; }
         emit();
       },
@@ -943,7 +997,7 @@
   };
   var MIC_TEXT = {
     off: 'Mikrofon wyłączony', starting: 'Uruchamiam nasłuch…',
-    listening: 'Mikrofon słucha', error: 'Problem z mikrofonem'
+    listening: 'Słucham', error: 'Problem z mikrofonem'
   };
 
   function createStorage(win) {
@@ -1171,7 +1225,7 @@
         setText(el.gBest, String(S.best));
         var phase = {
           preparing: 'Przygotowuję mikrofon… Zezwól na dostęp, jeśli przeglądarka o to pyta.',
-          playing: 'Słuchaj…',
+          playing: S.arming ? 'Przygotowuję mikrofon…' : 'Słuchaj…',
           answering: 'Powiedz nazwę interwału',
           grace: 'Sprawdzam odpowiedź…',
           feedback: 'Dobrze!',
