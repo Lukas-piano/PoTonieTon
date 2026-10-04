@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rozpoznawanie interwałów · Po tonie ton</title>
+<meta name="description" content="Posłuchaj dwóch dźwięków i powiedz nazwę interwału. Ćwiczenie słuchu sterowane głosem — 10 etapów do pucharu.">
+<meta name="theme-color" content="#1e1b19">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<!-- Po publikacji pod innym adresem zmień poniższe adresy (tak jak na stronie głównej). -->
+<link rel="canonical" href="https://lukas-piano.github.io/PoTonieTon/rozpoznawanie-interwalow/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:site_name" content="Po tonie ton">
+<meta property="og:title" content="Rozpoznawanie interwałów · Po tonie ton">
+<meta property="og:description" content="Posłuchaj dwóch dźwięków i powiedz nazwę interwału.">
+<meta property="og:url" content="https://lukas-piano.github.io/PoTonieTon/rozpoznawanie-interwalow/">
+<meta property="og:image" content="https://lukas-piano.github.io/PoTonieTon/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Po tonie ton — narzędzia do ćwiczenia muzyki">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  /* Paleta portalu „Po tonie ton”: ciepły grafit, drewno, złamana biel, bursztyn. */
+  :root {
+    color-scheme: dark;
+    --bg: #1e1b19;
+    --card: #292522;
+    --card-2: #322d29;
+    --line: #453d37;
+    --wood: #8b5e3c;
+    --wood-light: #c69c6d;
+    --text: #f2eadc;
+    --muted: #b9ad9d;
+    --accent: #e6a23c;
+    --accent-ink: #2a1c08;
+    --good: #6cc48f;
+    --bad: #ff7a6b;
+    --radius: 16px;
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", "Noto Serif", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-text-size-adjust: 100%;
+  }
+  .app { max-width: 560px; margin: 0 auto; padding: 4px 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { color: var(--wood-light); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; text-align: center; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 500; }
+  header.brand { text-align: center; margin-top: -12px; }
+  header.brand h1 { font-size: 26px; line-height: 1.2; margin: 0 0 2px; }
+  header.brand .best { color: var(--muted); font-size: .9rem; }
+  header.brand .best b { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .lead { font-size: 1.1rem; margin: 0 0 16px; }
+  #scr-start .btn-primary { margin-bottom: 14px; }
+  #scr-start > p.warn, #scr-start > p.err { margin: 0 0 14px; }
+
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card-2);
+    border-radius: 10px; min-height: 48px; padding: 10px 18px; font-weight: 600;
+    transition: background .15s, border-color .15s;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  button:hover:not(:disabled) { border-color: var(--wood-light); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; font-size: 1.15rem; min-height: 60px; width: 100%; }
+  .btn-primary:hover:not(:disabled) { background: #f0b659; border-color: #f0b659; }
+  .btn-replay { width: 100%; min-height: 76px; font-size: 1.2rem; font-weight: 650; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .btn-replay .ico { font-size: 1.5rem; color: var(--accent); }
+  .btn-ghost { background: transparent; width: 100%; color: var(--muted); font-weight: 500; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > button { flex: 1 1 180px; }
+
+  .box { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 0 0 14px; }
+  .box p:empty { display: none; }
+  .box h2 { font-size: 1.15rem; margin: 0 0 8px; }
+  .box p { margin: 6px 0 0; font-size: .95rem; }
+  .muted { color: var(--muted); }
+  .warn { color: var(--accent); }
+  .err { color: var(--bad); }
+  .ok { color: var(--good); }
+  .heard-line { min-height: 1.5em; }
+  .heard-line q { color: var(--text); font-weight: 600; quotes: "„" "”"; }
+
+  details.rules { margin: 0; color: var(--muted); font-size: .95rem; }
+  details.rules summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;
+    min-height: 52px; padding: 10px 18px; color: var(--text);
+    border: 1px solid var(--line); background: var(--card-2); border-radius: 10px; font-weight: 600;
+  }
+  details.rules summary::-webkit-details-marker { display: none; }
+  details.rules summary::after { content: "▾"; color: var(--accent); transition: transform .15s; }
+  details.rules[open] summary::after { transform: rotate(180deg); }
+  .rules-body { padding: 4px 4px 0; }
+  .rules-body h3 { color: var(--text); font-size: 1.15rem; margin: 16px 0 6px; }
+  .rules-body ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .chips span { background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; text-align: center; }
+  .chips small { display: block; font-size: .72rem; }
+  .chips b { color: var(--text); font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  td { padding: 5px 2px; border-bottom: 1px solid var(--line); }
+  td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+  .volume { display: flex; align-items: center; gap: 12px; padding: 4px 6px; color: var(--muted); font-size: .95rem; }
+  .volume input[type=range] { flex: 1; height: 36px; accent-color: var(--accent); min-width: 0; }
+  .volume button { min-height: 44px; padding: 6px 14px; font-size: .95rem; }
+
+  /* --- gra --- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+  .stat { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; text-align: center; }
+  .stat span { display: block; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+  .stat b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .timer { text-align: center; padding: 4px 0 2px; }
+  .count { font-size: clamp(6rem, 34vw, 10.5rem); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.03em; transition: color .2s, opacity .2s; }
+  .bar { height: 12px; border-radius: 99px; background: var(--card-2); border: 1px solid var(--line); overflow: hidden; margin-top: 10px; }
+  .bar-fill { height: 100%; width: 100%; background: var(--accent); transform-origin: left center; border-radius: 99px; transition: background-color .2s; }
+  .timer.waiting .count { opacity: .25; }
+  .timer.waiting .bar-fill { opacity: .35; }
+  .timer.urgent .count { color: var(--bad); animation: pulse .5s ease-in-out infinite alternate; }
+  .timer.urgent .bar-fill { background: var(--bad); }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  .phase { text-align: center; font-size: 1.15rem; font-weight: 600; min-height: 1.6em; margin: 10px 0 6px; }
+  .banner { text-align: center; border-radius: 12px; padding: 10px 12px; font-weight: 700; margin: 6px 0; min-height: 3em; display: flex; align-items: center; justify-content: center; }
+  .banner.good { background: rgba(76,195,138,.16); border: 1px solid var(--good); color: var(--good); font-size: 1.2rem; }
+  .banner.retry { background: rgba(230,162,60,.12); border: 1px solid var(--accent); color: var(--accent); }
+  .banner.stage { background: rgba(230,162,60,.12); border: 1px solid var(--accent); color: var(--accent); font-size: 1.1rem; }
+  .banner.empty { border: 1px solid transparent; }
+  .stage-line { text-align: center; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 8px; font-size: .95rem; }
+
+  /* --- podziałka etapów --- */
+  .gauge { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 12px 10px; }
+  .lamps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+  .lamps li { position: relative; display: flex; justify-content: center; }
+  .lamp {
+    position: relative; z-index: 1; width: 100%; max-width: 34px; aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; border: 2px solid var(--line); background: var(--card-2);
+    color: var(--muted); font-weight: 700; font-size: .75rem; font-variant-numeric: tabular-nums;
+    transition: background-color .4s, border-color .4s, box-shadow .4s, color .3s, transform .3s;
+  }
+  .lamps li.done .lamp, .lamps li.current .lamp {
+    background: var(--c); border-color: var(--c); color: #1e1b19; box-shadow: 0 0 var(--glow) var(--ga);
+  }
+  .lamps li.current .lamp {
+    transform: scale(1.12); outline: 2px solid var(--text); outline-offset: 1px;
+    animation: lamp-pulse 2s ease-in-out infinite;
+  }
+  @keyframes lamp-pulse {
+    0%, 100% { box-shadow: 0 0 var(--glow) var(--ga); }
+    50% { box-shadow: 0 0 calc(var(--glow) * 1.8 + 4px) var(--c); }
+  }
+  /* etap 10: żar i płomień */
+  .lamps li.fire.done .lamp, .lamps li.fire.current .lamp {
+    background: radial-gradient(circle at 50% 72%, #ffe27a 0%, #ffb02e 34%, #ff5a1f 68%, #d81e1e 100%);
+    border-color: #ff7a2a;
+  }
+  .lamps li.fire.done::before, .lamps li.fire.current::before {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 150%; max-width: 52px; aspect-ratio: 1;
+    margin: 0; translate: -50% -50%; border-radius: 50%;
+    background: conic-gradient(#ff3b30, #ffb02e, #ffd75e, #ff6a2e, #ff3b30);
+    filter: blur(6px); opacity: .55; animation: ember 7s linear infinite;
+  }
+  .lamps li.fire.done::after, .lamps li.fire.current::after {
+    content: ""; position: absolute; left: 50%; bottom: 62%; width: 70%; max-width: 24px; height: 95%;
+    translate: -50% 0; transform-origin: 50% 100%;
+    background: radial-gradient(ellipse at 50% 100%, #ffd75e 0%, #ff8a2a 45%, rgba(255,59,48,0) 72%);
+    border-radius: 50% 50% 45% 45% / 70% 70% 30% 30%;
+    filter: blur(1.5px); opacity: .8; animation: flame 1.6s ease-in-out infinite alternate;
+  }
+  @keyframes ember { to { rotate: 360deg; } }
+  @keyframes flame {
+    from { transform: scale(.9, .82) skewX(-3deg); opacity: .6; }
+    to   { transform: scale(1.05, 1.08) skewX(3deg); opacity: .9; }
+  }
+  .gauge.paused .lamp, .gauge.paused li::before, .gauge.paused li::after { animation: none !important; }
+  .gbar {
+    position: relative; height: 10px; margin-top: 14px; border-radius: 99px; overflow: hidden; border: 1px solid var(--line);
+    background: linear-gradient(90deg, #7cc7ff 5%, #2fd0c4 15%, #4cc38a 25%, #a6d63a 35%, #f2d43b 45%, #e6a23c 55%, #ff9838 65%, #ff6a2e 75%, #ff3b30 85%, #ff5a1f 91%, #ffb02e 96%, #ffd75e 100%);
+  }
+  .gbar-cover { position: absolute; inset: 0; background: var(--card-2); transform-origin: right center; transition: transform .6s ease; }
+  .trophy { font-size: clamp(5rem, 30vw, 8rem); line-height: 1.1; text-align: center; }
+  .over.win h2, .over.win .reason, .over.win #o-detail { text-align: center; }
+  .over.win h2 { color: var(--accent); }
+  .over.win .reason { font-weight: 700; }
+  .mic { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .95rem; margin: 8px 0 2px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: #7a6f64; flex: none; }
+  .mic[data-state=listening] .dot { background: var(--good); box-shadow: 0 0 0 0 rgba(76,195,138,.6); animation: ping 1.4s ease-out infinite; }
+  .mic[data-state=starting] .dot { background: var(--accent); }
+  .mic[data-state=error] .dot { background: var(--bad); }
+  @keyframes ping { to { box-shadow: 0 0 0 10px rgba(76,195,138,0); } }
+  .heard { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 3em; margin-bottom: 12px; overflow-wrap: anywhere; }
+  .heard small { display: block; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+  .stack { display: grid; gap: 10px; }
+
+  /* --- koniec --- */
+  .over h2 { font-size: 2rem; line-height: 1.15; margin: 0 0 6px; }
+  .over .reason { font-size: 1.15rem; margin: 0 0 14px; }
+  .over dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0 0 16px; }
+  .over dt { color: var(--muted); }
+  .over dd { margin: 0; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .over dd.big { font-size: 1.6rem; color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .timer.urgent .count, .mic .dot, .lamp, .lamps li::before, .lamps li::after { animation: none !important; }
+    .gbar-cover { transition: none; }
+  }
+  @media (max-width: 380px) {
+    body { font-size: 16px; }
+    .app { padding-left: 10px; padding-right: 10px; }
+    .card { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="eyebrow">Po tonie ton · Narzędzia muzyczne</div>
+  <header class="brand">
+    <h1>Rozpoznawanie interwałów</h1>
+    <div class="best">Rekord: <b id="best-top">0</b> pkt</div>
+  </header>
+
+  <!-- ===== PODZIAŁKA ETAPÓW ===== -->
+  <section class="gauge" id="gauge" aria-label="Postęp etapów" hidden>
+    <ol class="lamps" id="lamps"></ol>
+    <div class="gbar" id="gbar" role="progressbar" aria-label="Poprawne odpowiedzi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="gbar-cover" id="gbar-cover"></div></div>
+    <div class="stage-line" id="g-stage" aria-live="polite"></div>
+  </section>
+
+  <!-- ===== EKRAN STARTOWY ===== -->
+  <section class="card" id="scr-start">
+    <p class="lead">Po usłyszeniu dwóch dźwięków powiedz na głos nazwę interwału. Czas na odpowiedź zależy od etapu.</p>
+
+    <p id="env-msg" class="warn" hidden></p>
+    <p id="support-msg" class="err" hidden></p>
+    <p id="start-error" class="err" role="alert" hidden></p>
+
+    <button class="btn-primary" id="btn-start" type="button">Start</button>
+
+    <div class="box">
+      <h2>Test mikrofonu</h2>
+      <div class="row"><button id="btn-test" type="button">Sprawdź mikrofon</button></div>
+      <p id="test-status" class="muted">Naciśnij i powiedz np. „kwinta czysta”.</p>
+      <p id="test-heard" class="heard-line" aria-live="polite"></p>
+      <p id="test-result" aria-live="polite"></p>
+    </div>
+
+    <details class="rules">
+      <summary>Zasady i interwały</summary>
+      <div class="rules-body">
+        <h3>Zasady</h3>
+        <ul>
+          <li>Interwały są grane w górę lub w dół. Podajesz tylko nazwę, bez kierunku.</li>
+          <li>Gra ma 10 etapów po 10 interwałów. Każda poprawna odpowiedź to 10 punktów.</li>
+          <li>Czas liczy się od końca drugiego dźwięku. „Powtórz interwał” go nie zatrzymuje.</li>
+          <li>Błędna nazwa lub brak odpowiedzi kończy grę. Niezrozumiałą odpowiedź możesz powtórzyć.</li>
+          <li>100 poprawnych odpowiedzi to 1000 punktów i puchar 🏆.</li>
+        </ul>
+        <h3>Czas na odpowiedź w etapach</h3>
+        <div class="chips" id="stages"></div>
+        <h3>Interwały i liczba półtonów</h3>
+        <table id="legend"></table>
+        <h3>Akceptowane odpowiedzi</h3>
+        <ul>
+          <li>Pełna nazwa, w dowolnej kolejności: „tercja mała” lub „mała tercja”.</li>
+          <li>6 półtonów: „tryton”, „kwarta zwiększona” lub „kwinta zmniejszona”.</li>
+          <li>12 półtonów: wystarczy „oktawa”.</li>
+        </ul>
+        <h3>Wskazówki</h3>
+        <ul>
+          <li>Użyj słuchawek — dźwięk z głośnika może mylić mikrofon.</li>
+          <li>Rozpoznawanie mowy wymaga internetu, a nagranie trafia do usługi przeglądarki. Najlepiej działa w Chrome i Edge.</li>
+          <li>Jeśli mówisz, gdy czas się kończy, aplikacja czeka jeszcze do 1 sekundy na rozpoznanie.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ===== EKRAN GRY ===== -->
+  <section class="card" id="scr-game" hidden>
+    <div class="stats">
+      <div class="stat"><span>Wynik</span><b id="g-score">0</b></div>
+      <div class="stat"><span>Poprawne</span><b id="g-correct">0</b></div>
+      <div class="stat"><span>Rekord</span><b id="g-best">0</b></div>
+    </div>
+    <div class="timer waiting" id="timer">
+      <div class="count" id="count" aria-hidden="true">10</div>
+      <div class="bar"><div class="bar-fill" id="bar"></div></div>
+    </div>
+    <div class="phase" id="phase" aria-live="polite"></div>
+    <div class="banner empty" id="banner" role="status" aria-live="assertive"></div>
+    <div class="mic" id="mic" data-state="off"><span class="dot"></span><span id="mic-text">Mikrofon wyłączony</span></div>
+    <div class="heard"><small>Rozpoznana wypowiedź</small><span id="heard">—</span></div>
+    <div class="stack">
+      <button class="btn-replay" id="btn-replay" type="button" disabled><span class="ico" aria-hidden="true">▶</span><span>Powtórz interwał</span></button>
+      <button class="btn-ghost" id="btn-quit" type="button">Zakończ grę</button>
+    </div>
+  </section>
+
+  <!-- ===== EKRAN KOŃCOWY ===== -->
+  <section class="card over" id="scr-over" hidden>
+    <div class="trophy" id="o-trophy" aria-hidden="true" hidden>🏆</div>
+    <h2 id="o-title">Koniec gry</h2>
+    <p class="reason" id="o-reason"></p>
+    <p class="muted" id="o-detail" hidden></p>
+    <dl>
+      <dt id="o-answer-label">Poprawna odpowiedź</dt><dd id="o-answer">—</dd>
+      <dt id="o-said-label">Twoja odpowiedź</dt><dd id="o-said">—</dd>
+      <dt>Etap</dt><dd id="o-stage">—</dd>
+      <dt>Suma punktów</dt><dd class="big" id="o-score">0</dd>
+      <dt>Prawidłowe odpowiedzi</dt><dd id="o-correct">0</dd>
+      <dt>Rekord</dt><dd id="o-best">0</dd>
+    </dl>
+    <div class="stack">
+      <button class="btn-primary" id="btn-again" type="button">Zagraj ponownie</button>
+      <button id="btn-hear" type="button">▶ Posłuchaj ostatniego interwału</button>
+      <button class="btn-ghost" id="btn-home" type="button">Ekran startowy</button>
+    </div>
+  </section>
+
+  <div class="volume">
+    <label for="vol">Głośność</label>
+    <input id="vol" type="range" min="0" max="100" value="70" step="1">
+    <button id="btn-sample" type="button">Próbny dźwięk</button>
+  </div>
+  <noscript><p class="err">Ta aplikacja wymaga włączonego JavaScriptu.</p></noscript>
+</main>
+
+<script>
+(function (root) {
+  'use strict';
+
+  /* =====================================================================
+   * 1. KONFIGURACJA
+   * ===================================================================== */
+  var CONFIG = {
+    stageLimitsSec: [14, 12, 10, 9, 8, 7, 6, 5, 4, 3],  // czas na odpowiedź w kolejnych etapach
+    perStage: 10,        // poprawnych odpowiedzi na etap
+    pointsPerCorrect: 10,
+    stageNoticeMs: 2000, // informacja o nowym etapie przed kolejnym pytaniem
+    graceMs: 1000,       // maks. oczekiwanie na finalizację wypowiedzi po zerze
+    feedbackMs: 800,     // pauza po poprawnej odpowiedzi
+    urgentMs: 3000,      // wyróżnienie końcówki czasu
+    noteSec: 0.6,
+    gapSec: 0.15,
+    leadSec: 0.05,
+    minRoot: 48,         // C3
+    maxRoot: 72,         // C5 (drugi dźwięk najwyżej C6 = 84)
+    lang: 'pl-PL',
+    storageKey: 'interwaly-ze-sluchu.rekord.v2'
+  };
+
+  /* =====================================================================
+   * 2. INTERWAŁY, SŁOWNIK ODPOWIEDZI, LOSOWANIE (czysta logika)
+   * ===================================================================== */
+  var INTERVALS = {
+    1: 'Sekunda mała', 2: 'Sekunda wielka', 3: 'Tercja mała', 4: 'Tercja wielka',
+    5: 'Kwarta czysta', 6: 'Tryton', 7: 'Kwinta czysta', 8: 'Seksta mała',
+    9: 'Seksta wielka', 10: 'Septyma mała', 11: 'Septyma wielka', 12: 'Oktawa czysta'
+  };
+  function intervalLabel(n) {
+    return n === 6 ? 'Tryton (kwarta zwiększona / kwinta zmniejszona)' : INTERVALS[n];
+  }
+
+  // Jawny słownik: formy po normalizacji (małe litery, bez polskich znaków).
+  var NOUN_FORMS = {
+    sekunda: ['sekunda', 'sekunde', 'sekundy'],
+    tercja:  ['tercja', 'tercje', 'tercji'],
+    kwarta:  ['kwarta', 'kwarte', 'kwarty'],
+    kwinta:  ['kwinta', 'kwinte', 'kwinty'],
+    seksta:  ['seksta', 'sekste', 'seksty', 'sexta'],
+    septyma: ['septyma', 'septyme', 'septymy', 'septima'],
+    oktawa:  ['oktawa', 'oktawe', 'oktawy'],
+    tryton:  ['tryton', 'trytonu', 'triton']
+  };
+  var QUAL_FORMS = {
+    mala:        ['mala', 'malej'],
+    wielka:      ['wielka', 'wielkiej'],
+    czysta:      ['czysta', 'czystej'],
+    zwiekszona:  ['zwiekszona', 'zwiekszonej'],
+    zmniejszona: ['zmniejszona', 'zmniejszonej']
+  };
+  // Dozwolone pary rzeczownik + określenie (w dowolnej kolejności, ale obok siebie).
+  var PAIRS = {
+    'sekunda|mala': 1, 'sekunda|wielka': 2, 'tercja|mala': 3, 'tercja|wielka': 4,
+    'kwarta|czysta': 5, 'kwarta|zwiekszona': 6, 'kwinta|zmniejszona': 6, 'kwinta|czysta': 7,
+    'seksta|mala': 8, 'seksta|wielka': 9, 'septyma|mala': 10, 'septyma|wielka': 11,
+    'oktawa|czysta': 12
+  };
+  // Nazwy kompletne jako pojedyncze słowo.
+  var SINGLE = { tryton: 6, oktawa: 12 };
+
+  function invert(forms) {
+    var out = {};
+    Object.keys(forms).forEach(function (k) { forms[k].forEach(function (f) { out[f] = k; }); });
+    return out;
+  }
+  var NOUN_LOOKUP = invert(NOUN_FORMS);
+  var QUAL_LOOKUP = invert(QUAL_FORMS);
+
+  function normalizeText(text) {
+    return String(text == null ? '' : text)
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\u0142/g, 'l')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\btry ton\b/g, 'tryton');
+  }
+
+  /**
+   * Zwraca {kind:'answer', semitones} | {kind:'ambiguous'} | {kind:'none'}.
+   * 'answer' tylko wtedy, gdy wypowiedź zawiera dokładnie jedną kompletną nazwę
+   * i żadnych innych, niedopasowanych słów ze słownika interwałów.
+   */
+  function parseAnswer(text) {
+    var norm = normalizeText(text);
+    if (!norm) return { kind: 'none', normalized: norm };
+    var tokens = norm.split(' ').map(function (w) {
+      return { noun: NOUN_LOOKUP[w] || null, qual: QUAL_LOOKUP[w] || null };
+    });
+    var found = {}, covered = [];
+    for (var i = 0; i < tokens.length; i++) {
+      var a = tokens[i], b = tokens[i + 1];
+      if (a.noun && SINGLE[a.noun]) { found[SINGLE[a.noun]] = true; covered[i] = true; }
+      if (b) {
+        var s = (a.noun && b.qual) ? PAIRS[a.noun + '|' + b.qual]
+              : (a.qual && b.noun) ? PAIRS[b.noun + '|' + a.qual] : undefined;
+        if (s) { found[s] = true; covered[i] = true; covered[i + 1] = true; }
+      }
+    }
+    var list = Object.keys(found).map(Number);
+    var stray = tokens.some(function (t, idx) { return (t.noun || t.qual) && !covered[idx]; });
+    if (list.length === 1 && !stray) return { kind: 'answer', semitones: list[0], normalized: norm };
+    if (list.length >= 1) return { kind: 'ambiguous', normalized: norm };
+    return { kind: 'none', normalized: norm };
+  }
+
+  function stageCount() { return CONFIG.stageLimitsSec.length; }
+  function stageLimitMs(stage) {
+    var i = Math.max(1, Math.min(stageCount(), stage)) - 1;
+    return CONFIG.stageLimitsSec[i] * 1000;
+  }
+  function secondsWord(n) {
+    var d = n % 10, h = n % 100;
+    if (n === 1) return 'sekunda';
+    return (d >= 2 && d <= 4 && !(h >= 12 && h <= 14)) ? 'sekundy' : 'sekund';
+  }
+
+  function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  /**
+   * Losuje niezależnie: wielkość (1–12 półtonów), wysokość i kierunek (50/50).
+   * notes = [pierwszy, drugi] dźwięk w kolejności grania; oba mieszczą się w C3–C6.
+   */
+  function pickQuestion(rng, prevFirst) {
+    var semitones = Math.min(12, 1 + Math.floor(rng() * 12));
+    var span = CONFIG.maxRoot - CONFIG.minRoot + 1;
+    var low = CONFIG.minRoot + Math.min(span - 1, Math.floor(rng() * span));   // niższy z dwóch dźwięków
+    var descending = rng() >= 0.5;
+    if ((descending ? low + semitones : low) === prevFirst) {                   // inny dźwięk początkowy niż poprzednio
+      var shift = 1 + Math.min(span - 2, Math.floor(rng() * (span - 1)));
+      low = CONFIG.minRoot + ((low - CONFIG.minRoot + shift) % span);
+    }
+    var high = low + semitones;
+    return { semitones: semitones, root: low, descending: descending,
+             notes: descending ? [high, low] : [low, high] };
+  }
+
+  /* =====================================================================
+   * 3. DŹWIĘK (Web Audio API)
+   * ===================================================================== */
+  function createAudio(win) {
+    var ctx = null, master = null, volume = 0.5, voice = null;
+
+    function ensure() {
+      if (!ctx) {
+        var AC = win.AudioContext || win.webkitAudioContext;
+        if (!AC) return false;
+        try { ctx = new AC(); } catch (e) { ctx = null; return false; }
+        master = ctx.createGain();
+        master.gain.value = volume;
+        master.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended' && ctx.resume) { try { ctx.resume(); } catch (e) {} }
+      return true;
+    }
+
+    function tone(bus, freq, t0, dur, oscs) {
+      var env = ctx.createGain();
+      env.gain.setValueAtTime(0.0001, t0);
+      env.gain.linearRampToValueAtTime(1, t0 + 0.02);              // krótki atak, bez trzasku
+      env.gain.exponentialRampToValueAtTime(0.55, t0 + 0.25);      // łagodne opadanie
+      env.gain.setValueAtTime(0.55, t0 + dur - 0.09);
+      env.gain.linearRampToValueAtTime(0.0001, t0 + dur);          // wybrzmienie
+      var lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.5;
+      lp.connect(env); env.connect(bus);
+      [['triangle', 1, 0.8], ['sine', 2, 0.14]].forEach(function (p) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = p[0]; o.frequency.value = freq * p[1]; g.gain.value = p[2];
+        o.connect(g); g.connect(lp);
+        o.start(t0); o.stop(t0 + dur + 0.03);
+        oscs.push(o);
+      });
+    }
+
+    /** Odtwarza kolejno podane dźwięki (MIDI). Zwraca czas trwania w ms albo null. */
+    function play(midis) {
+      if (!ensure()) return null;
+      stop();
+      var bus = ctx.createGain();
+      bus.gain.value = 0.5;
+      bus.connect(master);
+      var oscs = [], t = ctx.currentTime + CONFIG.leadSec;
+      midis.forEach(function (m, i) {
+        tone(bus, midiToFreq(m), t + i * (CONFIG.noteSec + CONFIG.gapSec), CONFIG.noteSec, oscs);
+      });
+      voice = { bus: bus, oscs: oscs };
+      var total = CONFIG.leadSec + midis.length * CONFIG.noteSec + (midis.length - 1) * CONFIG.gapSec;
+      return Math.round(total * 1000);
+    }
+
+    function stop() {
+      if (!voice || !ctx) return;
+      var v = voice, t = ctx.currentTime;
+      voice = null;
+      try {
+        v.bus.gain.cancelScheduledValues(t);
+        v.bus.gain.setValueAtTime(v.bus.gain.value, t);
+        v.bus.gain.linearRampToValueAtTime(0.0001, t + 0.03);
+      } catch (e) {}
+      v.oscs.forEach(function (o) { try { o.stop(t + 0.05); } catch (e) {} });
+    }
+
+    function setVolume(v01) {
+      volume = v01 * v01; // krzywa bliższa odczuciu głośności
+      if (master && ctx) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
+    }
+
+    function close() {
+      stop();
+      if (ctx && ctx.close) { try { ctx.close(); } catch (e) {} }
+      ctx = null; master = null;
+    }
+
+    return { ensure: ensure, play: play, stop: stop, setVolume: setVolume, close: close };
+  }
+
+  /* =====================================================================
+   * 4. ROZPOZNAWANIE MOWY (Web Speech API)
+   *    sink: onState(state), onInterim(text, firstSeenAt),
+   *          onFinal(text, firstSeenAt), onFatal(code)
+   *    Stany: 'off' | 'starting' | 'listening' | 'error'
+   * ===================================================================== */
+  var FATAL_CODES = {
+    'not-allowed': 'denied', 'service-not-allowed': 'denied',
+    'audio-capture': 'no-mic', 'network': 'network', 'language-not-supported': 'language'
+  };
+
+  function createSpeech(opts) {
+    var SR = opts.SR, clock = opts.clock, sink = opts.sink, lang = opts.lang || CONFIG.lang;
+    var want = false, session = null, restartTimer = null;
+    var quickFails = 0, startFails = 0, pending = null, state = 'off';
+
+    function setState(s) { if (state !== s) { state = s; sink.onState(s); } }
+
+    function schedule(ms) {
+      if (restartTimer != null) clock.clearTimeout(restartTimer);
+      restartTimer = clock.setTimeout(function () { restartTimer = null; begin(); }, ms);
+    }
+    function cancelSchedule() {
+      if (restartTimer != null) { clock.clearTimeout(restartTimer); restartTimer = null; }
+    }
+
+    function fatal(code) {
+      want = false;
+      cancelSchedule();
+      pending = null;
+      if (session) abortSession(session);
+      setState('error');
+      sink.onFatal(code);
+    }
+
+    function abortSession(s) {
+      s.discard = true; s.byUs = true;
+      try { s.rec.abort(); } catch (e) {}
+      if (s.safety == null) {
+        // Gdyby przeglądarka nie wysłała 'end' — nie blokuj kolejnych sesji.
+        s.safety = clock.setTimeout(function () {
+          if (session === s) { session = null; if (want) begin(); }
+        }, 1000);
+      }
+    }
+
+    function begin() {
+      if (!want || session) return;
+      var rec;
+      try { rec = new SR(); } catch (e) { fatal('unsupported'); return; }
+      var s = { rec: rec, discard: false, byUs: false, live: false, gotResult: false,
+                startedAt: clock.now(), firstSeen: {}, done: {}, safety: null };
+      rec.lang = lang;
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.onstart = function () {
+        if (session !== s) return;
+        s.live = true; startFails = 0;
+        if (!s.discard && want) setState('listening');
+      };
+      rec.onresult = function (e) { if (session === s && !s.discard) handleResult(s, e); };
+      rec.onerror = function (e) {
+        if (session !== s) return;
+        var code = e && e.error;
+        if (code === 'aborted' || code === 'no-speech') return;  // zwykłe sytuacje
+        if (FATAL_CODES[code]) fatal(FATAL_CODES[code]);
+      };
+      rec.onend = function () { if (session === s) ended(s); };
+      session = s; pending = null;
+      setState('starting');
+      try { rec.start(); }
+      catch (e) {
+        session = null; startFails++;
+        if (startFails >= 5) { fatal('service'); return; }
+        schedule(300);
+      }
+    }
+
+    function ended(s) {
+      session = null; pending = null;
+      if (s.safety != null) { clock.clearTimeout(s.safety); s.safety = null; }
+      if (!want) { if (state !== 'error') setState('off'); return; }
+      if (!s.byUs) {
+        var short = (clock.now() - s.startedAt) < 700 && !s.gotResult;
+        quickFails = short ? quickFails + 1 : 0;
+        if (quickFails >= 6) { fatal('service'); return; }
+      }
+      setState('starting');
+      schedule(s.byUs ? 60 : 200);
+    }
+
+    function handleResult(s, e) {
+      var now = clock.now(), interim = '', first = null, finals = [];
+      s.gotResult = true; quickFails = 0;
+      for (var i = 0; i < e.results.length; i++) {
+        var r = e.results[i];
+        if (s.firstSeen[i] == null) s.firstSeen[i] = now;
+        var txt = (r[0] && r[0].transcript) || '';
+        if (r.isFinal) {
+          if (!s.done[i]) { s.done[i] = true; finals.push({ text: txt, at: s.firstSeen[i] }); }
+        } else {
+          interim += txt + ' ';
+          if (first == null || s.firstSeen[i] < first) first = s.firstSeen[i];
+        }
+      }
+      interim = interim.trim();
+      pending = interim ? { text: interim, firstSeenAt: first } : null;
+      if (pending) sink.onInterim(pending.text, pending.firstSeenAt);
+      for (var k = 0; k < finals.length; k++) {
+        if (s.discard) break;
+        sink.onFinal(finals[k].text, finals[k].at);
+      }
+    }
+
+    return {
+      /** Włącz ciągły nasłuch (z automatycznym ponawianiem). */
+      listen: function () {
+        want = true; quickFails = 0;
+        if (!session && restartTimer == null) begin();
+      },
+      /** Odrzuć wszystko, co dotąd usłyszano, i zacznij świeżą sesję. */
+      flush: function () {
+        pending = null;
+        if (session) { abortSession(session); if (want) setState('starting'); }
+        else if (want && restartTimer == null) begin();
+      },
+      /** Odetnij mikrofon teraz i poproś o finalizację tego, co już nagrano. */
+      finishNow: function () {
+        want = false; cancelSchedule();
+        if (session && session.live && !session.discard) {
+          session.byUs = true;
+          try { session.rec.stop(); return true; } catch (e) {}
+        }
+        if (session) abortSession(session);
+        setState('off');
+        return false;
+      },
+      /** Zatrzymaj nasłuch i zwolnij mikrofon. */
+      shutdown: function () {
+        want = false; cancelSchedule(); pending = null;
+        if (session) abortSession(session);
+        if (state !== 'error') setState('off');
+      },
+      pending: function () { return pending; },
+      state: function () { return state; }
+    };
+  }
+
+  /* =====================================================================
+   * 5. ZASADY GRY (automat stanów; bez DOM — testowalny z symulowanym zegarem)
+   *    Stany: idle | preparing | playing | answering | grace | feedback | stageup | over
+   * ===================================================================== */
+  function createGame(d) {
+    var S = {
+      state: 'idle', score: 0, correct: 0, stage: 1, stageCorrect: 0, best: d.storage.load(), newBest: false,
+      round: null, heard: '', notice: null, feedback: null, result: null,
+      replaying: false, micState: 'off', error: null
+    };
+    var seq = 0, timers = {};
+
+    function emit() { d.onChange(S); }
+    function setT(name, fn, ms) {
+      clearT(name);
+      timers[name] = d.clock.setTimeout(function () { timers[name] = null; fn(); }, ms);
+    }
+    function clearT(name) {
+      if (timers[name] != null) { d.clock.clearTimeout(timers[name]); timers[name] = null; }
+    }
+    function clearAll() { Object.keys(timers).forEach(clearT); }
+    function isActive() {
+      return S.state === 'playing' || S.state === 'answering' || S.state === 'grace' || S.state === 'feedback' || S.state === 'stageup';
+    }
+
+    function start() {
+      if (S.state !== 'idle' && S.state !== 'over') return;
+      clearAll();
+      S.score = 0; S.correct = 0; S.stage = 1; S.stageCorrect = 0; S.newBest = false; S.round = null;
+      S.heard = ''; S.notice = null; S.feedback = null; S.result = null;
+      S.error = null; S.replaying = false;
+      S.state = 'preparing';
+      emit();
+      d.speech.listen();   // pierwsze pytanie padnie, gdy mikrofon zgłosi gotowość
+    }
+
+    function nextQuestion() {
+      var first = !S.round;
+      var q = pickQuestion(d.rng, S.round ? S.round.notes[0] : null);
+      var r = { id: ++seq, semitones: q.semitones, root: q.root, notes: q.notes, descending: q.descending, settled: false, openAt: null, deadline: null,
+                stage: S.stage, limitMs: stageLimitMs(S.stage) };   // pełny limit aktualnego etapu
+      S.round = r; S.state = 'playing';
+      S.heard = ''; S.notice = null; S.feedback = null; S.replaying = false;
+      d.speech.listen();
+      if (!first) d.speech.flush();      // stare wyniki rozpoznawania przepadają
+      var dur = d.audio.play(r.notes);
+      if (dur == null) { finish('technical', { code: 'audio' }); return; }
+      setT('phase', function () { openWindow(r); }, dur);
+      emit();
+    }
+
+    function openWindow(r) {
+      if (S.round !== r || S.state !== 'playing') return;
+      var now = d.clock.now();
+      r.openAt = now;
+      r.deadline = now + r.limitMs;       // jedyny termin końcowy rundy
+      S.state = 'answering';
+      if (d.speech.pending()) d.speech.flush();  // to, co „usłyszano” w trakcie grania, odrzucamy
+      armDeadline(r);
+      emit();
+    }
+
+    function armDeadline(r) {
+      setT('deadline', function () {
+        if (S.round !== r) return;
+        tick();
+        if (S.round === r && S.state === 'answering') armDeadline(r);
+      }, Math.max(0, r.deadline - d.clock.now()));
+    }
+
+    /** Sprawdzenie terminu wg rzeczywistego czasu; wołane z timera i z pętli rysowania. */
+    function tick() {
+      if (S.state === 'answering' && d.clock.now() >= S.round.deadline) onDeadline(S.round);
+    }
+
+    function onDeadline(r) {
+      d.audio.stop();
+      clearT('replay'); clearT('deadline');
+      S.replaying = false;
+      var p = d.speech.pending();
+      if (p && p.firstSeenAt >= r.openAt) {
+        // Trwała wypowiedź: odcinamy mikrofon i czekamy najwyżej graceMs na jej finalizację.
+        S.state = 'grace';
+        emit();
+        var ok = d.speech.finishNow();
+        if (!ok) { finish('timeout'); return; }
+        if (S.state !== 'grace') return;
+        setT('grace', function () {
+          if (S.round === r && S.state === 'grace') finish('timeout');
+        }, CONFIG.graceMs);
+      } else {
+        finish('timeout');
+      }
+    }
+
+    function award(r) {
+      r.settled = true;              // runda rozliczana dokładnie raz
+      clearAll();
+      d.audio.stop();
+      S.score += CONFIG.pointsPerCorrect;
+      S.correct += 1;
+      S.stageCorrect += 1;
+      if (S.score > S.best) { S.best = S.score; S.newBest = true; d.storage.save(S.best); }
+      if (S.correct >= stageCount() * CONFIG.perStage) { finish('win'); return; }   // puchar — bez kolejnego pytania
+      S.feedback = { semitones: r.semitones, points: CONFIG.pointsPerCorrect };
+      S.notice = null; S.replaying = false;
+      S.state = 'feedback';
+      setT('phase', function () {
+        if (S.round === r && S.state === 'feedback') afterFeedback(r);
+      }, CONFIG.feedbackMs);
+      emit();
+    }
+
+    function afterFeedback(r) {
+      if (S.stageCorrect < CONFIG.perStage) { nextQuestion(); return; }
+      S.stage += 1; S.stageCorrect = 0;      // nowy limit obowiązuje od następnego pytania
+      S.feedback = null;
+      S.state = 'stageup';
+      setT('phase', function () {
+        if (S.round === r && S.state === 'stageup') nextQuestion();
+      }, CONFIG.stageNoticeMs);
+      emit();
+    }
+
+    function finish(reason, extra) {
+      if (S.state === 'over' || S.state === 'idle') return;
+      extra = extra || {};
+      var r = S.round;
+      if (r) r.settled = true;
+      clearAll();
+      S.state = 'over';
+      S.replaying = false; S.notice = null; S.feedback = null;
+      S.result = {
+        reason: reason,
+        answer: r ? r.semitones : null,
+        root: r ? r.root : null,
+        notes: r ? r.notes.slice() : null,
+        said: extra.said != null ? extra.said : null,
+        unclear: !!extra.unclear,
+        code: extra.code || null
+      };
+      d.audio.stop();
+      d.speech.shutdown();
+      emit();
+    }
+
+    return {
+      get state() { return S; },
+      start: start,
+      tick: tick,
+      replay: function () {
+        if (S.state !== 'answering' || S.replaying) return false;
+        var r = S.round;
+        if (d.clock.now() >= r.deadline) { tick(); return false; }
+        var dur = d.audio.play(r.notes);   // te same dźwięki; termin bez zmian
+        if (dur == null) return false;
+        S.replaying = true;
+        setT('replay', function () { if (S.round === r) { S.replaying = false; emit(); } }, dur);
+        emit();
+        return true;
+      },
+      quit: function () {
+        if (S.state === 'preparing') {
+          clearAll(); S.state = 'idle'; d.speech.shutdown(); emit();
+        } else if (isActive()) {
+          finish('quit');
+        }
+      },
+      reset: function () {
+        if (S.state === 'over') { S.state = 'idle'; S.error = null; emit(); }
+      },
+      onMicState: function (s) {
+        S.micState = s;
+        if (s === 'listening' && S.state === 'preparing') { nextQuestion(); return; }
+        if (s === 'off' && S.state === 'grace') { finish('timeout'); return; }
+        emit();
+      },
+      onInterim: function (text, firstSeenAt) {
+        var r = S.round;
+        if (!r || r.settled || (S.state !== 'answering' && S.state !== 'grace')) return;
+        if (firstSeenAt < r.openAt) return;
+        S.heard = text;
+        emit();
+      },
+      onFinal: function (text, firstSeenAt) {
+        var r = S.round;
+        if (!r || r.settled) return;                                  // stare / podwójne zdarzenia
+        var now = d.clock.now();
+        if (S.state === 'answering') { if (now > r.deadline + CONFIG.graceMs) return; }
+        else if (S.state !== 'grace') return;
+        if (firstSeenAt < r.openAt) return;                           // wypowiedź sprzed pytania
+        var p = parseAnswer(text);
+        S.heard = text;
+        if (p.kind === 'answer') {
+          if (p.semitones === r.semitones) award(r);
+          else finish('wrong', { said: p.semitones });
+          return;
+        }
+        if (S.state === 'grace' || now >= r.deadline) { finish('timeout', { unclear: true }); return; }
+        S.notice = p.kind;                                            // 'none' | 'ambiguous' — czas biegnie dalej
+        emit();
+      },
+      onFatal: function (code) {
+        S.error = code;
+        if (S.state === 'preparing') { clearAll(); S.state = 'idle'; emit(); }
+        else if (isActive()) finish('technical', { code: code });
+        else emit();
+      }
+    };
+  }
+
+  /* =====================================================================
+   * 6. INTERFEJS
+   * ===================================================================== */
+  var ERROR_TEXT = {
+    denied: 'Brak dostępu do mikrofonu. Zezwól na mikrofon dla tej strony (ikona przy pasku adresu) i spróbuj ponownie.',
+    'no-mic': 'Nie wykryto mikrofonu. Podłącz mikrofon lub sprawdź ustawienia systemu.',
+    network: 'Usługa rozpoznawania mowy jest niedostępna. Sprawdź połączenie z internetem.',
+    language: 'Ta przeglądarka nie obsługuje rozpoznawania mowy po polsku.',
+    service: 'Rozpoznawanie mowy nie uruchamia się poprawnie w tej przeglądarce. Spróbuj w aktualnym Chrome lub Edge.',
+    unsupported: 'Ta przeglądarka nie udostępnia rozpoznawania mowy. Użyj aktualnego Chrome lub Edge.',
+    audio: 'Nie udało się uruchomić dźwięku w tej przeglądarce.'
+  };
+  var MIC_TEXT = {
+    off: 'Mikrofon wyłączony', starting: 'Uruchamiam nasłuch…',
+    listening: 'Mikrofon słucha', error: 'Problem z mikrofonem'
+  };
+
+  function createStorage(win) {
+    var mem = 0;
+    return {
+      load: function () {
+        try {
+          var v = parseInt(win.localStorage.getItem(CONFIG.storageKey), 10);
+          if (isFinite(v) && v > 0) mem = v;
+        } catch (e) {}
+        return mem;
+      },
+      save: function (v) {
+        mem = v;
+        try { win.localStorage.setItem(CONFIG.storageKey, String(v)); } catch (e) {}
+      }
+    };
+  }
+
+  function boot(win, doc) {
+    function $(id) { return doc.getElementById(id); }
+    var el = {
+      start: $('scr-start'), game: $('scr-game'), over: $('scr-over'),
+      bestTop: $('best-top'), envMsg: $('env-msg'), supportMsg: $('support-msg'), startError: $('start-error'),
+      btnTest: $('btn-test'), testStatus: $('test-status'), testHeard: $('test-heard'), testResult: $('test-result'),
+      legend: $('legend'), btnStart: $('btn-start'),
+      gScore: $('g-score'), gCorrect: $('g-correct'), gBest: $('g-best'), gStage: $('g-stage'), stages: $('stages'), gauge: $('gauge'), lamps: $('lamps'), gbar: $('gbar'), gbarCover: $('gbar-cover'),
+      timer: $('timer'), count: $('count'), bar: $('bar'), phase: $('phase'), banner: $('banner'),
+      mic: $('mic'), micText: $('mic-text'), heard: $('heard'),
+      btnReplay: $('btn-replay'), btnQuit: $('btn-quit'),
+      oTrophy: $('o-trophy'), oTitle: $('o-title'), oAnswerLabel: $('o-answer-label'), oStage: $('o-stage'),
+      oReason: $('o-reason'), oDetail: $('o-detail'), oAnswer: $('o-answer'),
+      oSaidLabel: $('o-said-label'), oSaid: $('o-said'), oScore: $('o-score'), oCorrect: $('o-correct'), oBest: $('o-best'),
+      btnAgain: $('btn-again'), btnHear: $('btn-hear'), btnHome: $('btn-home'),
+      vol: $('vol'), btnSample: $('btn-sample')
+    };
+
+    var clock = {
+      now: function () { return win.performance.now(); },
+      setTimeout: function (f, ms) { return win.setTimeout(f, ms); },
+      clearTimeout: function (id) { win.clearTimeout(id); }
+    };
+    var SR = win.SpeechRecognition || win.webkitSpeechRecognition;
+    var audio = createAudio(win);
+    var mode = 'game';            // 'game' | 'test'
+    var testTimer = null;
+    var game = null;
+
+    var speech = SR ? createSpeech({
+      SR: SR, clock: clock, lang: CONFIG.lang,
+      sink: {
+        onState: function (s) {
+          if (mode === 'test') renderTestState(s);
+          if (game) game.onMicState(s);
+        },
+        onInterim: function (t, at) {
+          if (mode === 'test') showTestHeard(t, false); else game.onInterim(t, at);
+        },
+        onFinal: function (t, at) {
+          if (mode === 'test') showTestHeard(t, true); else game.onFinal(t, at);
+        },
+        onFatal: function (code) {
+          if (mode === 'test') { endTest(); el.testStatus.textContent = ERROR_TEXT[code] || 'Błąd mikrofonu.'; el.testStatus.className = 'err'; }
+          else game.onFatal(code);
+        }
+      }
+    }) : {
+      listen: function () { game.onFatal('unsupported'); }, flush: function () {}, finishNow: function () { return false; },
+      shutdown: function () {}, pending: function () { return null; }, state: function () { return 'off'; }
+    };
+
+    game = createGame({
+      clock: clock, audio: audio, speech: speech, rng: Math.random,
+      storage: createStorage(win), onChange: render
+    });
+
+    /* ---- legenda ---- */
+    el.legend.innerHTML = Object.keys(INTERVALS).map(function (k) {
+      return '<tr><td>' + INTERVALS[k] + '</td><td>' + k + '</td></tr>';
+    }).join('');
+
+    el.stages.innerHTML = CONFIG.stageLimitsSec.map(function (sec, i) {
+      return '<span><small>Etap ' + (i + 1) + '</small><b>' + sec + ' s</b></span>';
+    }).join('');
+
+    /* ---- podziałka etapów ---- */
+    var STAGE_COLORS = ['#7cc7ff', '#2fd0c4', '#4cc38a', '#a6d63a', '#f2d43b', '#e6a23c', '#ff9838', '#ff6a2e', '#ff3b30', '#ff7a2a'];
+    el.lamps.innerHTML = STAGE_COLORS.map(function (c, i) {
+      var rgb = [1, 3, 5].map(function (k) { return parseInt(c.substr(k, 2), 16); }).join(',');
+      var style = '--c:' + c + ';--glow:' + (3 + i * 1.3).toFixed(1) + 'px;--ga:rgba(' + rgb + ',' + (0.3 + i * 0.07).toFixed(2) + ')';
+      return '<li' + (i === STAGE_COLORS.length - 1 ? ' class="fire"' : '') + ' style="' + style + '"><span class="lamp"><b>' + (i + 1) + '</b></span></li>';
+    }).join('');
+    var lampNodes = el.lamps.children;
+
+    function drawGauge(S) {
+      el.gauge.hidden = S.state === 'idle';
+      if (S.state === 'idle') return;
+      var won = S.state === 'over' && S.result && S.result.reason === 'win';
+      var stageDone = S.stageCorrect >= CONFIG.perStage;
+      for (var i = 0; i < lampNodes.length; i++) {
+        var n = i + 1;
+        var done = won || n < S.stage || (n === S.stage && stageDone);
+        var current = !done && n === S.stage;
+        var li = lampNodes[i];
+        li.classList.toggle('done', done);
+        li.classList.toggle('current', current);
+        if (current) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+        var label = 'Etap ' + n + (done ? ' — ukończony' : current ? ' — aktualny' : '');
+        if (li.getAttribute('aria-label') !== label) li.setAttribute('aria-label', label);
+      }
+      el.gauge.classList.toggle('paused', S.state === 'over' && !won);
+      var totalAnswers = stageCount() * CONFIG.perStage;
+      el.gbarCover.style.transform = 'scaleX(' + (1 - Math.min(1, S.correct / totalAnswers)).toFixed(4) + ')';
+      el.gbar.setAttribute('aria-valuenow', String(S.correct));
+      setText(el.gStage, 'Etap ' + S.stage + '/' + stageCount() + ' · ' + S.stageCorrect + '/' + CONFIG.perStage + ' odpowiedzi');
+    }
+
+    /* ---- środowisko ---- */
+    if (!SR) {
+      el.supportMsg.hidden = false;
+      el.supportMsg.textContent = ERROR_TEXT.unsupported;
+      el.btnStart.disabled = true; el.btnTest.disabled = true;
+    } else if (win.location.protocol === 'file:' || win.isSecureContext === false) {
+      el.envMsg.hidden = false;
+      el.envMsg.textContent = 'Strona nie jest otwarta przez https ani http://localhost — mikrofon i rozpoznawanie mowy mogą nie działać. Uruchom ją z lokalnego serwera lub hostingu z HTTPS.';
+    }
+
+    /* ---- test mikrofonu ---- */
+    function renderTestState(s) {
+      if (s === 'listening') { el.testStatus.textContent = 'Słucham — powiedz np. „kwinta czysta”.'; el.testStatus.className = 'ok'; }
+      else if (s === 'starting') { el.testStatus.textContent = 'Uruchamiam nasłuch… Zezwól na mikrofon, jeśli przeglądarka o to pyta.'; el.testStatus.className = 'muted'; }
+    }
+    function showTestHeard(text, isFinal) {
+      el.testHeard.innerHTML = '';
+      el.testHeard.appendChild(doc.createTextNode(isFinal ? 'Usłyszałem: ' : 'Słyszę: '));
+      var q = doc.createElement('q'); q.textContent = text; el.testHeard.appendChild(q);
+      if (!isFinal) return;
+      var p = parseAnswer(text);
+      if (p.kind === 'answer') {
+        el.testResult.textContent = '✓ Rozpoznano interwał: ' + INTERVALS[p.semitones] + '. Mikrofon działa.';
+        el.testResult.className = 'ok';
+      } else if (p.kind === 'ambiguous') {
+        el.testResult.textContent = 'Słyszę Cię, ale padło kilka różnych nazw — w grze trzeba będzie powtórzyć jednoznacznie.';
+        el.testResult.className = 'warn';
+      } else {
+        el.testResult.textContent = 'Słyszę Cię, ale to nie jest nazwa interwału. Spróbuj: „tercja mała”.';
+        el.testResult.className = 'warn';
+      }
+    }
+    function endTest() {
+      if (mode !== 'test') return;
+      if (testTimer != null) { win.clearTimeout(testTimer); testTimer = null; }
+      speech.shutdown();
+      mode = 'game';
+      el.btnTest.textContent = 'Sprawdź mikrofon';
+      if (el.testStatus.className !== 'err') { el.testStatus.textContent = 'Test zakończony, mikrofon zwolniony.'; el.testStatus.className = 'muted'; }
+    }
+    el.btnTest.addEventListener('click', function () {
+      if (mode === 'test') { endTest(); return; }
+      if (game.state.state !== 'idle') return;
+      mode = 'test';
+      el.btnTest.textContent = 'Zatrzymaj test';
+      el.testHeard.textContent = ''; el.testResult.textContent = '';
+      el.testStatus.className = 'muted'; el.testStatus.textContent = 'Uruchamiam nasłuch…';
+      speech.listen();
+      testTimer = win.setTimeout(endTest, 15000);
+    });
+
+    /* ---- przyciski ---- */
+    function startGame() {
+      endTest();
+      el.startError.hidden = true;
+      if (!audio.ensure()) { showStartError('audio'); return; }   // odblokowanie audio w geście użytkownika
+      game.start();
+    }
+    function showStartError(code) {
+      el.startError.hidden = false;
+      el.startError.textContent = ERROR_TEXT[code] || 'Wystąpił błąd techniczny.';
+    }
+    el.btnStart.addEventListener('click', startGame);
+    el.btnAgain.addEventListener('click', startGame);
+    el.btnReplay.addEventListener('click', function () { game.replay(); });
+    el.btnQuit.addEventListener('click', function () { game.quit(); });
+    el.btnHome.addEventListener('click', function () { audio.stop(); game.reset(); });
+    el.btnHear.addEventListener('click', function () {
+      var r = game.state.result;
+      if (r && r.notes) audio.play(r.notes);
+    });
+    el.btnSample.addEventListener('click', function () {
+      var st = game.state.state;
+      if (st === 'idle' || st === 'over') audio.play([69]);
+    });
+    function applyVolume() { audio.setVolume(Number(el.vol.value) / 100); }
+    el.vol.addEventListener('input', applyVolume);
+    applyVolume();
+
+    /* ---- sprzątanie po opuszczeniu strony ---- */
+    win.addEventListener('pagehide', function () {
+      endTest();
+      game.quit();
+      speech.shutdown();
+      audio.close();
+    });
+
+    /* ---- rysowanie stanu ---- */
+    function setText(node, text) { if (node.textContent !== text) node.textContent = text; }
+
+    function render(S) {
+      var inGame = S.state !== 'idle' && S.state !== 'over';
+      el.start.hidden = S.state !== 'idle';
+      el.game.hidden = !inGame;
+      el.over.hidden = S.state !== 'over';
+      setText(el.bestTop, String(S.best));
+      el.btnSample.hidden = inGame;
+      drawGauge(S);
+
+      if (S.state === 'idle') {
+        if (S.error) showStartError(S.error); else el.startError.hidden = true;
+        return;
+      }
+
+      if (inGame) {
+        setText(el.gScore, String(S.score));
+        setText(el.gCorrect, String(S.correct));
+        setText(el.gBest, String(S.best));
+        var phase = {
+          preparing: 'Przygotowuję mikrofon… Zezwól na dostęp, jeśli przeglądarka o to pyta.',
+          playing: 'Słuchaj…',
+          answering: 'Powiedz nazwę interwału',
+          grace: 'Sprawdzam odpowiedź…',
+          feedback: 'Dobrze!',
+          stageup: 'Nowy etap!'
+        }[S.state] || '';
+        setText(el.phase, phase);
+
+        if (S.state === 'feedback' && S.feedback) {
+          el.banner.className = 'banner good';
+          setText(el.banner, '✓ ' + INTERVALS[S.feedback.semitones] + ' · +' + S.feedback.points + ' pkt');
+        } else if (S.state === 'stageup') {
+          var sec = stageLimitMs(S.stage) / 1000;
+          el.banner.className = 'banner stage';
+          setText(el.banner, 'Etap ' + S.stage + '/' + stageCount() + ' — czas na odpowiedź: ' + sec + ' ' + secondsWord(sec));
+        } else if (S.state === 'answering' && S.notice) {
+          el.banner.className = 'banner retry';
+          setText(el.banner, S.notice === 'ambiguous'
+            ? 'Nie zrozumiałem — powtórz odpowiedź (padło kilka różnych nazw)'
+            : 'Nie zrozumiałem — powtórz odpowiedź');
+        } else {
+          el.banner.className = 'banner empty';
+          setText(el.banner, '');
+        }
+
+        el.mic.setAttribute('data-state', S.micState);
+        setText(el.micText, MIC_TEXT[S.micState] || '');
+        setText(el.heard, S.heard ? '„' + S.heard + '”' : '—');
+        el.btnReplay.disabled = !(S.state === 'answering' && !S.replaying);
+        setText(el.btnQuit, S.state === 'preparing' ? 'Anuluj' : 'Zakończ grę');
+        drawTimer();
+        return;
+      }
+
+      // --- ekran końcowy ---
+      var R = S.result || {};
+      var win = R.reason === 'win';
+      el.over.classList.toggle('win', win);
+      el.oTrophy.hidden = !win;
+      setText(el.oTitle, win ? 'Gratulacje! Zdobywasz puchar!' : 'Koniec gry');
+      el.oAnswerLabel.hidden = win; el.oAnswer.hidden = win;
+      setText(el.oStage, S.stage + '/' + stageCount() + ' · odgadnięte ' + S.stageCorrect + '/' + CONFIG.perStage);
+      var reason = {
+        win: S.correct + ' poprawnych odpowiedzi · ' + S.score + ' punktów',
+        wrong: 'Błędna odpowiedź.',
+        timeout: 'Czas minął — brak odpowiedzi.',
+        quit: 'Gra zakończona na Twoje życzenie.',
+        technical: 'Gra przerwana z powodu problemu technicznego — to nie Twoja pomyłka.'
+      }[R.reason] || '';
+      setText(el.oReason, reason);
+      var detail = '';
+      if (R.reason === 'technical') detail = ERROR_TEXT[R.code] || '';
+      else if (R.reason === 'timeout' && R.unclear) detail = 'Ostatnia wypowiedź nie była jednoznaczną nazwą interwału.';
+      if (S.newBest) detail = (detail ? detail + ' ' : '') + 'Nowy rekord!';
+      el.oDetail.hidden = !detail;
+      setText(el.oDetail, detail);
+      setText(el.oAnswer, R.answer ? intervalLabel(R.answer) : '—');
+      var showSaid = R.reason === 'wrong' && R.said != null;
+      el.oSaidLabel.hidden = !showSaid; el.oSaid.hidden = !showSaid;
+      setText(el.oSaid, showSaid ? INTERVALS[R.said] : '—');
+      setText(el.oScore, String(S.score));
+      setText(el.oCorrect, String(S.correct));
+      setText(el.oBest, String(S.best));
+      el.btnHear.hidden = win || R.root == null;
+    }
+
+    function drawTimer() {
+      var S = game.state, rem;
+      var inRound = S.round && (S.state === 'playing' || S.state === 'answering' || S.state === 'grace');
+      var total = inRound ? S.round.limitMs : stageLimitMs(S.stage);
+      if (S.state === 'answering') rem = Math.max(0, S.round.deadline - clock.now());
+      else if (S.state === 'grace') rem = 0;
+      else rem = total;
+      setText(el.count, String(Math.ceil(rem / 1000)));
+      el.bar.style.transform = 'scaleX(' + (rem / total).toFixed(4) + ')';
+      var live = S.state === 'answering' || S.state === 'grace';
+      el.timer.classList.toggle('waiting', !live);
+      el.timer.classList.toggle('urgent', live && rem <= Math.min(CONFIG.urgentMs, total / 2));
+    }
+
+    function frame() {
+      var st = game.state.state;
+      if (st === 'answering') game.tick();
+      if (game.state.state !== 'idle' && game.state.state !== 'over') drawTimer();
+      win.requestAnimationFrame(frame);
+    }
+    win.requestAnimationFrame(frame);
+
+    render(game.state);
+    return { game: game, speech: speech, audio: audio };
+  }
+
+  /* =====================================================================
+   * 7. START / EKSPORT (do testów i późniejszej integracji)
+   * ===================================================================== */
+  var api = {
+    CONFIG: CONFIG, INTERVALS: INTERVALS,
+    normalizeText: normalizeText, parseAnswer: parseAnswer,
+    midiToFreq: midiToFreq, pickQuestion: pickQuestion, stageLimitMs: stageLimitMs, secondsWord: secondsWord,
+    createSpeech: createSpeech, createGame: createGame, createAudio: createAudio
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (typeof document !== 'undefined') {
+    api.app = boot(root, document);
+    root.InterwalyZeSluchu = api;
+  }
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script src="../assets/portal-link.js"></script>
+<script src="../assets/apps.js"></script>
+<script src="../assets/app-bar.js"></script>
+</body>
+</html>

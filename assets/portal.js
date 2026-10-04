@@ -19,6 +19,12 @@
       '<path class="line" d="M10 52c9 0 9-14 18-14s9 14 18 14"/>' +
       '<path class="wave" d="M34 60C50 60 58 18 86 18"/>' +
       '<circle class="cream" cx="34" cy="60" r="6"/><circle class="amber" cx="86" cy="18" r="6"/></svg>',
+    rozpoznawanie:
+      '<svg viewBox="0 0 120 84" aria-hidden="true"><path class="tick" d="M8 62h52M8 50h52M8 38h52M8 26h52"/>' +
+      '<path class="wave" d="M22 56C32 56 36 32 46 32"/>' +
+      '<circle class="cream" cx="22" cy="56" r="6"/><circle class="amber" cx="46" cy="32" r="6"/>' +
+      '<path class="line" d="M74 22h30a6 6 0 0 1 6 6v20a6 6 0 0 1-6 6H92l-9 9v-9h-9a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z"/>' +
+      '<path class="line" d="M79 38v0M84 34v8M89 30v16M94 34v8M99 38v0"/></svg>',
     ogolna:
       '<svg viewBox="0 0 120 84" aria-hidden="true"><path class="line" d="M48 62V22l30-6v40"/>' +
       '<circle class="amber" cx="41" cy="62" r="7"/><circle class="amber" cx="71" cy="56" r="7"/></svg>'

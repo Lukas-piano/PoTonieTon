@@ -5,7 +5,7 @@
  *   id      – krótki identyfikator (bez spacji i polskich znaków)
  *   nazwa   – tytuł karty
  *   opis    – jedno–dwa zdania: do czego służy narzędzie
- *   ikona   – nazwa grafiki z assets/portal.js (metronom, akordy, interwaly, ogolna)
+ *   ikona   – nazwa grafiki z assets/portal.js (metronom, akordy, interwaly, rozpoznawanie, ogolna)
  *   adres   – folder aplikacji zakończony ukośnikiem, np. "tuner/"
  *   status  – "dostepna"  → karta z przyciskiem „Uruchom”
  *             "wkrotce"   → karta bez przycisku, oznaczona jako chwilowo niedostępna
@@ -38,6 +38,15 @@ window.FOREST_APPS = [
     opis: 'Zaśpiewaj wskazany interwał i rozbij nadlatującą bramkę. Siedem etapów, coraz mniej czasu.',
     ikona: 'interwaly',
     adres: 'interwaly/',
+    status: 'dostepna',
+    uwaga: 'Wymaga mikrofonu'
+  },
+  {
+    id: 'rozpoznawanie-interwalow',
+    nazwa: 'Rozpoznawanie interwałów',
+    opis: 'Posłuchaj dwóch dźwięków i powiedz nazwę interwału',
+    ikona: 'rozpoznawanie',
+    adres: 'rozpoznawanie-interwalow/',
     status: 'dostepna',
     uwaga: 'Wymaga mikrofonu'
   }
