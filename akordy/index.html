@@ -65,7 +65,7 @@ h1{margin:2px 0 12px;color:#fff3da;font-size:21px;font-weight:700}
 .btn:hover{background:#fff}
 .btn.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn:focus-visible,.sw:focus-visible,.onoff:focus-visible,.tag:focus-visible,.play:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.panels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.panels{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1fr) minmax(0,.7fr) repeat(4,minmax(0,1fr));gap:6px;margin-top:12px}
 .panel{background:var(--card);border:1px solid var(--card-b);border-radius:10px;padding:10px 4px;text-align:center;display:flex;flex-direction:column;align-items:center}
 .panel.key-tone{background:var(--slate);border-color:var(--slate-b)}
 .panel h3{margin:0 0 8px;font-size:12px;font-weight:600;opacity:.85}
@@ -75,6 +75,11 @@ h1{margin:2px 0 12px;color:#fff3da;font-size:21px;font-weight:700}
 .sw .slot{position:absolute;left:50%;top:8px;bottom:8px;width:12px;margin-left:-6px;border-radius:6px;background:#222;box-shadow:inset 0 1px 3px #000}
 .sw .knob{position:absolute;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#8a8f94 55%,#2f3236);box-shadow:0 2px 3px rgba(0,0,0,.5);transition:top .15s}
 .panel.off .sw{opacity:.7}
+.panel.locked>*{opacity:.4}
+.panel.btn-locked .onoff{opacity:.4;cursor:not-allowed}
+.panel.locked .sw,.panel.locked .onoff{cursor:not-allowed;pointer-events:none}
+.panel.sus{padding-left:3px;padding-right:3px}
+.panel.sus .onoff{margin-top:auto;width:100%;max-width:60px}
 .onoff{width:60px;height:46px;border:1px solid #111;border-radius:8px;background:linear-gradient(#3b3b3b,#1d1d1d);color:#fff;font-size:10px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .onoff i{width:15px;height:15px;border-radius:50%;background:#4a1010;border:1px solid #000}
 .onoff.on i{background:radial-gradient(circle at 35% 30%,#ff9a9a,#e31b1b 55%,#8a0000);box-shadow:0 0 8px #ff2a2a}
@@ -89,6 +94,8 @@ h1{margin:2px 0 12px;color:#fff3da;font-size:21px;font-weight:700}
 /* Jedna pastelowa paleta dla każdego składnika akordu. */
 [data-id="pryma"]{--tone:#e6a0a3;--tone-soft:#f8e3e4;--tone-border:#ca8589}
 [data-id="tercja"]{--tone:#91b9e0;--tone-soft:#e3eef9;--tone-border:#719bc4}
+[data-id="sus2"]{--tone:#d8cc7c;--tone-soft:#f6f2d9;--tone-border:#b3a85c}
+[data-id="sus4"]{--tone:#a3cf96;--tone-soft:#e6f3e1;--tone-border:#7fae72}
 [data-id="kwinta"]{--tone:#a5aec1;--tone-soft:#e4e7ee;--tone-border:#7d889e}
 [data-id="seksta"]{--tone:#e5b38e;--tone-soft:#faecdf;--tone-border:#c49370}
 [data-id="septyma"]{--tone:#bea5dc;--tone-soft:#efe7f8;--tone-border:#9e83bd}
@@ -103,8 +110,10 @@ h1{margin:2px 0 12px;color:#fff3da;font-size:21px;font-weight:700}
 #primaBtn{padding:4px 7px;border-radius:5px;background:var(--tone-soft);border:1px solid var(--tone-border)}
 .legend i{background:#909aa2}
 @media (max-width:520px){
-  .panels{gap:5px}.panel{padding:8px 2px}.panel .val{font-size:10.5px}
-  .sw{width:38px}.onoff{width:48px}
+  .panels{gap:3px}.panel{padding:8px 1px}.panel h3{font-size:10.5px}
+  .panel .val{font-size:8.5px;letter-spacing:-.02em;overflow-wrap:anywhere}
+  .sw{width:34px}.onoff{width:42px;max-width:100%}
+  .panel.sus{padding-left:1px;padding-right:1px}
   .cell b{font-size:16px}.roots,.cells{gap:5px}
 }
 /* Gryf: cienka struna e u góry, basowa E na dole. */
@@ -162,6 +171,30 @@ h1{color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,"
 .piano{border-color:var(--wood);background:var(--dark)}
 .guitar{border-color:var(--wood)}
 .fret-row.header,.string-label{background:var(--surface-2);color:var(--ink)}
+
+/* ===== Wariant testowy: pryma jako pionowa kolumna obok sus2 ===== */
+.panels{grid-template-columns:minmax(0,.95fr) minmax(0,.62fr) minmax(0,1fr) minmax(0,.62fr) repeat(4,minmax(0,1fr))}
+.panel .sw{margin-top:auto;margin-bottom:auto}
+.panel .onoff{margin-top:10px}
+.rootcol{background:var(--card);border:1px solid var(--card-b);border-top:3px solid var(--tone);border-radius:10px;padding:10px 5px;display:flex;flex-direction:column;gap:6px;text-align:center;min-width:0}
+.rootcol h3{margin:0;font-size:12px;font-weight:700;color:#f2716f;letter-spacing:.03em}
+.lamp{display:flex;align-items:center;justify-content:center;gap:5px;font-size:10px;font-weight:700;color:#aaa;padding:2px 0 4px}
+.lamp i{width:13px;height:13px;border-radius:50%;background:#4a1010;border:1px solid #000;flex:none}
+.lamp.on{color:#fff}
+.lamp.on i{background:radial-gradient(circle at 32% 28%,#fff8f5 0%,#ffb7a8 16%,#ff3b2f 38%,#ed0808 65%,#9b0000 100%);border-color:#790000;box-shadow:inset 0 0 3px #ffb2a2,0 0 5px #ff3322,0 0 11px rgba(255,35,20,.9)}
+.rootcol .acc{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0}
+.rootcol .acc .btn{padding:5px 0;font-size:16px;line-height:1.1}
+.rootcol .roots{display:flex;flex-direction:column;gap:4px;flex:1}
+.rootcol .roots .btn{flex:1;min-height:27px;padding:0;font-size:15px}
+@media (max-width:520px){
+  .panel .val{font-size:8px}
+  .rootcol{padding:8px 2px;gap:5px}
+  .rootcol h3{font-size:10.5px}
+  .lamp{gap:3px;font-size:9px}
+  .rootcol .acc{gap:2px}
+  .rootcol .roots{gap:3px}
+  .rootcol .roots .btn,.rootcol .acc .btn{font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -195,16 +228,17 @@ h1{color:var(--ink);font-family:"Iowan Old Style","Palatino Linotype",Palatino,"
     <div class="legend"><span><i></i><span id="kind"></span></span><span id="instrumentRange">C3–C6</span></div>
   </section>
 
-  <section class="card" data-id="pryma" aria-label="Pryma">
-    <div class="title">Pryma</div>
-    <div class="roots" id="roots"></div>
-    <div class="acc">
-      <button class="btn" id="flatBtn">♭ Bemol</button>
-      <button class="btn" id="sharpBtn">♯ Krzyżyk</button>
-    </div>
-  </section>
-
-  <div class="panels" id="panels"></div>
+  <div class="panels" id="panels">
+    <section class="rootcol" data-id="pryma" aria-label="Pryma">
+      <h3>Pryma</h3>
+      <div class="lamp" id="primaLamp" role="status" title="Pokazuje, czy pryma występuje w akordzie"><i></i><span></span></div>
+      <div class="acc">
+        <button class="btn" id="flatBtn" title="Bemol" aria-label="Bemol">♭</button>
+        <button class="btn" id="sharpBtn" title="Krzyżyk" aria-label="Krzyżyk">♯</button>
+      </div>
+      <div class="roots" id="roots"></div>
+    </section>
+  </div>
   <div class="note" id="primaNote"></div>
 
   <section class="card inv" aria-label="Przewrót">
@@ -224,7 +258,7 @@ var LET = ['C','D','E','F','G','A','H'];
 var SEM = [0,2,4,5,7,9,11];
 var SHARP_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','H'];
 var ROMAN = ['0','I','II','III','IV','V'];
-var INTERVAL_NUMBERS = {pryma:1,tercja:3,kwinta:5,seksta:6,septyma:7,nona:9};
+var INTERVAL_NUMBERS = {pryma:1,sus2:2,sus4:4,tercja:3,kwinta:5,seksta:6,septyma:7,nona:9};
 var LOW = 48, HIGH = 84; /* C3 … C6: trzy oktawy, C4 = 60 */
 
 var DEGS = [
@@ -239,12 +273,14 @@ var DEGS = [
   {id:'nona', title:'Nona', steps:8, keyTone:false,
    opts:[{semis:14,label:'Wielka',kind:'maj'},{semis:13,label:'Mała',kind:'min'}]}
 ];
+/* Sus: stały interwał bez odmian. Sekunda wielka albo kwarta czysta w miejscu tercji. */
+var SUS = {2:{id:'sus2',title:'Sus2',steps:1,semis:2}, 4:{id:'sus4',title:'Sus4',steps:3,semis:5}};
 var KINDS = ['Dźwięk','Dwudźwięk','Trójdźwięk','Czterodźwięk','Pięciodźwięk','Sześciodźwięk'];
 
 var DEFAULT = {
-  root:0, acc:0, prima:true, inv:0, drop2:false,
+  root:0, acc:0, prima:true, inv:0, drop2:false, autoPrima:false, sus:0, /* sus: 0, 2 albo 4 – zastępuje tercję */
   on:{tercja:true,kwinta:true,seksta:false,septyma:false,nona:false},
-  idx:{tercja:0,kwinta:1,seksta:0,septyma:1,nona:1}
+  idx:{tercja:0,kwinta:1,seksta:0,septyma:1,nona:0}
 };
 /* Każde otwarcie zaczynamy od C-dur z prymą. */
 var st = clone(DEFAULT);
@@ -261,12 +297,46 @@ function optionCount(d){
 }
 
 /* ---------- zasady wyboru dźwięków ---------- */
+/* Przy sus4 seksta istnieje tylko w 9sus4: septyma mała + nona wielka. */
+function sus4SixAllowed(){
+  return st.sus === 4 && st.on.septyma && st.idx.septyma === 1 && st.on.nona && st.idx.nona === 0;
+}
+function augActive(){ return st.on.kwinta && st.idx.kwinta === 0; }
+function minorActive(){ return st.on.tercja && st.idx.tercja === 1; }
+/* Zakres aplikacji: bez seksty przy kwincie zwiększonej. */
+function sekstaLocked(){ return (st.sus === 4 && !sus4SixAllowed()) || augActive(); }
+/* Zakres aplikacji: bez septymy małej przy sus2. */
+function septymaLocked(){ return st.sus === 2 && !st.on.septyma && st.idx.septyma === 1; }
+/* Odmiany, które wajcha może teraz wybrać. */
+function allowedIdx(d){
+  var a = [], n = optionCount(d);
+  for(var i = 0; i < n; i++){
+    if(d.id === 'kwinta' && i === 0 && minorActive()) continue; /* moll bez kwinty zwiększonej */
+    if(d.id === 'septyma' && i === 1 && st.sus === 2) continue;
+    a.push(i);
+  }
+  return a;
+}
 function normalize(changed){
+  /* Tercja i sus wykluczają się: włączona tercja (także wybór dur/moll) gasi sus. */
+  if(st.on.tercja) st.sus = 0;
+  /* Sus2 i nona wielka to ten sam dźwięk w dwóch oktawach – wykluczają się wzajemnie. */
+  if(st.sus === 2 && st.on.nona && st.idx.nona === 0){
+    if(changed === 'sus2'){ st.on.nona = false; st.prima = true; }
+    else { st.sus = 0; st.on.tercja = true; }
+  }
   if(st.idx.septyma === 2 && !diminishedTriad()) st.idx.septyma = 1;
   if(changed === 'nona' && !st.on.nona) st.prima = true;
-  var dominantSix = st.on.nona &&
-    st.on.tercja && st.idx.tercja === 0 &&
-    st.idx.seksta === 0 && st.idx.septyma === 1;
+  if(minorActive() && st.idx.kwinta === 0) st.idx.kwinta = 1; /* moll: wraca kwinta czysta */
+  if(st.sus === 2 && st.on.septyma && st.idx.septyma === 1) st.on.septyma = false;
+  if(augActive()) st.on.seksta = false;
+  if(st.sus === 4 && st.on.seksta){
+    if(sus4SixAllowed()) st.idx.seksta = 0; /* tylko seksta wielka (13) */
+    else{ st.on.seksta = false; if(changed !== 'seksta') st.on.kwinta = true; } /* wraca kwinta */
+  }
+  /* Wyjątki: dominanta z tercją wielką oraz 9sus4 (nona wielka, septyma mała). */
+  var dominantSix = st.on.nona && st.idx.seksta === 0 && st.idx.septyma === 1 &&
+    ((st.on.tercja && st.idx.tercja === 0) || (st.sus === 4 && st.idx.nona === 0));
   if(st.on.seksta && st.on.septyma){
     if(dominantSix){
       /* Dopiero tutaj seksta zastępuje kwintę, zachowując septymę. */
@@ -279,8 +349,11 @@ function normalize(changed){
     }
   }
   /* Nona może współistnieć z prymą, dopóki cały układ ma do czterech dźwięków. */
-  var count = (st.prima ? 1 : 0) + DEGS.filter(function(d){ return st.on[d.id]; }).length;
-  if(st.on.nona && count > 4) st.prima = false;
+  var count = (st.prima ? 1 : 0) + (st.sus ? 1 : 0) + DEGS.filter(function(d){ return st.on[d.id]; }).length;
+  if(st.on.nona && count > 4){ st.prima = false; st.autoPrima = true; }
+  /* Pryma zdjęta automatycznie wraca, gdy znów mieści się w czterech dźwiękach. */
+  else if(st.autoPrima && !st.prima && count < 4){ st.prima = true; st.autoPrima = false; }
+  if(st.prima || !st.on.nona) st.autoPrima = false;
 }
 
 /* ---------- teoria ---------- */
@@ -297,6 +370,7 @@ function compute(){
     notes.push({id:id, semis:semis, name:LET[li] + accStr(acc)});
   }
   if(st.prima) mk('pryma', 0, 0);
+  if(st.sus) mk(SUS[st.sus].id, SUS[st.sus].steps, SUS[st.sus].semis);
   DEGS.forEach(function(d){ if(st.on[d.id]) mk(d.id, d.steps, d.opts[st.idx[d.id]].semis); });
 
   /* add9: nona brzmi jako sekunda między prymą a tercją. */
@@ -340,7 +414,7 @@ function kindOf(id){ return st.on[id] ? degOf(id).opts[st.idx[id]].kind : null; 
 function chordSymbol(c){
   var t = kindOf('tercja'), f = kindOf('kwinta'), s6 = kindOf('seksta'), s7 = kindOf('septyma'), s9 = kindOf('nona');
   var noExt = !s6 && !s7 && !s9;
-  var q = '', ext = '', alt = '', extra = [];
+  var q = '', ext = '', alt = '', extra = [], sus = st.sus ? 'sus' + st.sus : '';
   if(t === 'min') q = 'm';
   if(f === 'dim'){ if(t === 'min' && noExt) q = 'dim'; else alt = '♭5'; }
   if(f === 'aug'){ if(t === 'maj' && noExt) q = 'aug'; else alt = '♯5'; }
@@ -351,7 +425,7 @@ function chordSymbol(c){
   }else if(s7){
     if(s9){ ext = (s7 === 'maj' ? 'maj' : '') + (s9 === 'maj' ? '9' : '7'); if(s9 === 'min') extra.push('♭9'); }
     else ext = s7 === 'maj' ? 'maj7' : '7';
-    if(s6) extra.push('add6');
+    if(s6) extra.push(st.sus ? 'add13' : 'add6');
   } else if(s6 === 'min'){
     extra.push('add♭6');
     if(s9) extra.push(s9 === 'maj' ? 'add9' : 'add♭9');
@@ -360,13 +434,17 @@ function chordSymbol(c){
   } else if(s6) ext = '6';
   else if(s9) ext = s9 === 'maj' ? 'add9' : 'add♭9';
 
-  if(!t && f === 'perf' && noExt && st.prima) ext = '5';
+  if(sus){
+    /* Sus zastępuje tercję: bez „bez 3”, a samotna nona to dodatek, nie sus2. */
+    if(ext.indexOf('add') === 0){ extra.unshift(ext); ext = ''; }
+    if(!f && !(s6 && s7)) extra.push('bez 5'); /* w 9sus4(add13) seksta zastępuje kwintę */
+  }else if(!t && f === 'perf' && noExt && st.prima) ext = '5';
   else{
     if(!t) extra.push('bez 3');
     if(!f && t) extra.push('bez 5');
   }
   if(alt) extra.unshift(alt);
-  var sup = ext + (extra.length ? '(' + extra.join(', ') + ')' : '');
+  var sup = ext + sus + (extra.length ? '(' + extra.join(', ') + ')' : '');
   var html = c.rootName + q + (sup ? '<sup>' + sup + '</sup>' : '');
   return html;
 }
@@ -544,16 +622,30 @@ LET.forEach(function(l,i){
   var b = document.createElement('button');
   b.className = 'btn'; b.textContent = l; b.dataset.i = i;
   b.addEventListener('click', function(){ st.root = i; update(); });
-  rootsEl.appendChild(b);
+  rootsEl.insertBefore(b, rootsEl.firstChild); /* H u góry, C na dole */
 });
 document.getElementById('flatBtn').addEventListener('click', function(){ st.acc = st.acc === -1 ? 0 : -1; update(); });
 document.getElementById('sharpBtn').addEventListener('click', function(){ st.acc = st.acc === 1 ? 0 : 1; update(); });
-document.getElementById('primaBtn').addEventListener('click', function(){ st.prima = !st.prima; update('pryma'); });
+document.getElementById('primaBtn').addEventListener('click', function(){ st.prima = !st.prima; st.autoPrima = false; update('pryma'); });
 document.getElementById('playBtn').addEventListener('click', playChord);
 document.getElementById('drop2Btn').addEventListener('click',function(){st.drop2=!st.drop2;update();});
 
 var panelsEl = document.getElementById('panels');
+function addSusPanel(n){
+  var s = SUS[n], p = document.createElement('div');
+  p.className = 'panel sus'; p.dataset.id = s.id;
+  p.innerHTML = '<h3>' + s.title + '</h3>' +
+    '<button class="onoff" aria-label="' + s.title + ' włącz/wyłącz" title="' +
+    (n === 2 ? 'Sekunda wielka zamiast tercji' : 'Kwarta czysta zamiast tercji') + '"><i></i><span></span></button>';
+  p.querySelector('.onoff').addEventListener('click', function(){
+    st.sus = st.sus === n ? 0 : n;
+    st.on.tercja = st.sus === 0; /* wyłączenie sus przywraca tercję z zapamiętaną odmianą */
+    update(s.id);
+  });
+  panelsEl.appendChild(p);
+}
 DEGS.forEach(function(d){
+  if(d.id === 'tercja') addSusPanel(2);
   var p = document.createElement('div');
   p.className = 'panel' + (d.keyTone ? ' key-tone' : '');
   p.dataset.id = d.id;
@@ -563,25 +655,32 @@ DEGS.forEach(function(d){
     '<button class="onoff" aria-label="' + d.title + ' włącz/wyłącz"><i></i><span></span></button>';
   var sw = p.querySelector('.sw');
   sw.addEventListener('click', function(){
-    var n = optionCount(d);
-    st.idx[d.id] = (st.idx[d.id] + 1) % n;
+    if(d.id === 'seksta' && sekstaLocked()) return;
+    var a = allowedIdx(d);
+    st.idx[d.id] = a[(a.indexOf(st.idx[d.id]) + 1) % a.length];
     st.on[d.id] = true;
     update(d.id);
   });
   sw.addEventListener('keydown', function(e){
-    var n = optionCount(d), i = st.idx[d.id];
-    if(e.key === 'ArrowUp' || e.key === 'ArrowLeft') i--;
-    else if(e.key === 'ArrowDown' || e.key === 'ArrowRight') i++;
-    else if(e.key === ' ' || e.key === 'Enter') i = (i + 1) % n;
+    if(d.id === 'seksta' && sekstaLocked()) return;
+    var a = allowedIdx(d), i = a.indexOf(st.idx[d.id]);
+    if(e.key === 'ArrowUp' || e.key === 'ArrowLeft') i = Math.max(0, i - 1);
+    else if(e.key === 'ArrowDown' || e.key === 'ArrowRight') i = Math.min(a.length - 1, i + 1);
+    else if(e.key === ' ' || e.key === 'Enter') i = (i + 1) % a.length;
     else return;
     e.preventDefault();
-    st.idx[d.id] = Math.max(0, Math.min(n - 1, i));
+    st.idx[d.id] = a[i];
     st.on[d.id] = true;
     update(d.id);
     p.querySelector('.sw').focus();
   });
-  p.querySelector('.onoff').addEventListener('click', function(){ st.on[d.id] = !st.on[d.id]; update(d.id); });
+  p.querySelector('.onoff').addEventListener('click', function(){
+    if(d.id === 'seksta' && sekstaLocked()) return;
+    if(d.id === 'septyma' && septymaLocked()) return;
+    st.on[d.id] = !st.on[d.id]; update(d.id);
+  });
   panelsEl.appendChild(p);
+  if(d.id === 'tercja') addSusPanel(4);
 });
 
 /* ---------- odświeżanie ---------- */
@@ -617,7 +716,14 @@ function update(changed){
   document.getElementById('flatBtn').classList.toggle('sel', st.acc === -1);
   document.getElementById('sharpBtn').classList.toggle('sel', st.acc === 1);
 
-  panelsEl.querySelectorAll('.panel').forEach(function(p){
+  panelsEl.querySelectorAll('.panel.sus').forEach(function(p){
+    var on = SUS[st.sus] && SUS[st.sus].id === p.dataset.id, b = p.querySelector('.onoff');
+    p.classList.toggle('off', !on);
+    b.classList.toggle('on', !!on);
+    b.querySelector('span').textContent = on ? 'ON' : 'OFF';
+    b.setAttribute('aria-pressed', !!on);
+  });
+  panelsEl.querySelectorAll('.panel:not(.sus)').forEach(function(p){
     var d = degOf(p.dataset.id), i = st.idx[d.id], n = optionCount(d), on = st.on[d.id];
     p.classList.toggle('off', !on);
     p.querySelector('.val').textContent = d.opts[i].label;
@@ -629,7 +735,21 @@ function update(changed){
     b.classList.toggle('on', on);
     b.querySelector('span').textContent = on ? 'ON' : 'OFF';
     b.setAttribute('aria-pressed', on);
+    var locked = d.id === 'seksta' && sekstaLocked();
+    p.classList.toggle('locked', locked);
+    var septLocked = d.id === 'septyma' && septymaLocked();
+    p.classList.toggle('btn-locked', septLocked);
+    b.disabled = locked || septLocked;
+    sw.tabIndex = locked ? -1 : 0;
+    sw.setAttribute('aria-disabled', locked);
+    p.title = septLocked ? 'Przy sus2 septyma mała jest niedostępna. Wajchą można wybrać septymę wielką.' :
+      !locked ? '' : augActive() ? 'Przy kwincie zwiększonej seksta jest niedostępna.' :
+      'Przy sus4 seksta jest dostępna tylko w akordzie 9sus4 (septyma mała i nona wielka).';
   });
+  var lamp = document.getElementById('primaLamp');
+  lamp.classList.toggle('on', st.prima);
+  lamp.querySelector('span').textContent = st.prima ? 'ON' : 'OFF';
+  lamp.setAttribute('aria-label', st.prima ? 'Pryma obecna w akordzie' : 'Pryma pominięta');
   document.getElementById('primaNote').textContent = st.prima ? 'Z prymą.' : 'Bez prymy.';
 
   var invs = document.getElementById('invs');
