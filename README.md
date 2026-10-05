@@ -11,7 +11,7 @@ Przeglądarkowe narzędzia do ćwiczenia rytmu, harmonii i słuchu muzycznego.
 
 ## Uruchomienie
 
-Otwórz główny plik `index.html` w przeglądarce. Gry interwałowe wymagają dostępu do mikrofonu oraz strony udostępnionej przez HTTPS lub lokalny serwer (`localhost`). „Rozpoznawanie interwałów” korzysta z rozpoznawania mowy przeglądarki (najlepiej Chrome lub Edge, z dostępem do internetu).
+Otwórz główny plik `index.html` w przeglądarce. Gry interwałowe wymagają dostępu do mikrofonu oraz strony udostępnionej przez HTTPS lub lokalny serwer (`localhost`). „Rozpoznawanie interwałów” rozpoznaje mowę w samej aplikacji: przy pierwszym użyciu pobiera ok. 38 MB danych z folderu `rozpoznawanie-interwalow/mowa/` (biblioteka Vosk i polski model, licencje w `LICENCJE.txt`). W aplikacji można też przełączyć się na rozpoznawanie mowy przeglądarki (Chrome lub Edge, z dostępem do internetu).
 
 Projekt korzysta z HTML, CSS i JavaScript, bez dodatkowych zależności i kompilacji.
 

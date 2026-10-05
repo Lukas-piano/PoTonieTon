@@ -1,0 +1,13 @@
+Rozpoznawanie mowy w aplikacji „Rozpoznawanie interwałów” korzysta z otwartego oprogramowania:
+
+1. vosk-browser (plik vosk.js) — https://github.com/ccoreilly/vosk-browser
+   Licencja: Apache License 2.0. Zawiera skompilowaną bibliotekę Vosk / Kaldi (Apache License 2.0).
+   Zmiana względem oryginału: w kodzie wątku roboczego dodano obsługę dopisku "#key=nazwa" w adresie modelu,
+   który nadaje modelowi stałą nazwę w pamięci przeglądarki.
+
+2. Polski model mowy vosk-model-small-pl-0.22 (pliki model-pl-1.bin i model-pl-2.bin) — https://alphacephei.com/vosk/models
+   Autor: Alpha Cephei Inc. Licencja: Apache License 2.0.
+   Zmiana względem oryginału: plik graph/Gr.fst (model językowy do dyktowania) zastąpiono samą listą słów,
+   bo aplikacja rozpoznaje wyłącznie nazwy interwałów. Archiwum podzielono na dwie części.
+
+Pełny tekst licencji: https://www.apache.org/licenses/LICENSE-2.0

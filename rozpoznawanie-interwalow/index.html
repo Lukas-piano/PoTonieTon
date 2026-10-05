@@ -86,6 +86,11 @@
 
   .box { background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 0 0 14px; }
   .box p:empty { display: none; }
+  .engine { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; font-size: .95rem; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; min-height: 44px; padding: 6px 14px; background: transparent; color: var(--muted); font-size: .95rem; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  #engine-note { font-size: .85rem; }
   .box h2 { font-size: 1.15rem; margin: 0 0 8px; }
   .box p { margin: 6px 0 0; font-size: .95rem; }
   .muted { color: var(--muted); }
@@ -255,6 +260,14 @@
       <p id="test-status" class="muted">Naciśnij i powiedz np. „kwinta czysta”.</p>
       <p id="test-heard" class="heard-line" aria-live="polite"></p>
       <p id="test-result" aria-live="polite"></p>
+      <div class="engine" id="engine" hidden>
+        <span id="engine-label">Rozpoznawanie mowy:</span>
+        <div class="seg" role="group" aria-labelledby="engine-label">
+          <button type="button" id="eng-local" aria-pressed="false">W aplikacji</button>
+          <button type="button" id="eng-browser" aria-pressed="false">Przeglądarki</button>
+        </div>
+      </div>
+      <p id="engine-note" class="muted"></p>
     </div>
 
     <details class="rules">
@@ -281,8 +294,9 @@
         <h3>Wskazówki</h3>
         <ul>
           <li>Użyj słuchawek — dźwięk z głośnika może mylić mikrofon.</li>
-          <li>Rozpoznawanie mowy wymaga internetu, a nagranie trafia do usługi przeglądarki. Najlepiej działa w Chrome i Edge.</li>
-          <li>Telefon może sam odtwarzać krótki sygnał przy włączaniu mikrofonu. To dźwięk systemu, nie aplikacji.</li>
+          <li>Rozpoznawanie „W aplikacji” pobiera dane tylko raz (ok. 38 MB), potem działa bez internetu, a głos nie opuszcza urządzenia.</li>
+          <li>Rozpoznawanie „Przeglądarki” wymaga internetu, wysyła nagranie do usługi przeglądarki i na telefonie może pikać przy włączaniu mikrofonu.</li>
+          <li>Możesz mówić z krótką przerwą: „tercja… mała”.</li>
           <li>Jeśli mówisz, gdy czas się kończy, aplikacja czeka jeszcze do 1 sekundy na rozpoznanie.</li>
         </ul>
       </div>
@@ -803,6 +817,360 @@
   }
 
   /* =====================================================================
+   * 4b. ROZPOZNAWANIE MOWY W APLIKACJI (Vosk w przeglądarce, bez usługi zewnętrznej)
+   *     Ten sam interfejs co createSpeech: listen / mark / finishNow / shutdown / pending / state.
+   *     Mikrofon działa bez przerwy przez całą grę; dźwięk trafia do rozpoznawania tylko
+   *     w oknie odpowiedzi (plus krótki zapas sprzed jego otwarcia), więc nie ma restartów.
+   *     Stany: 'off' | 'loading' | 'starting' | 'listening' | 'error'
+   * ===================================================================== */
+  var LOCAL = {
+    lib: { url: 'mowa/vosk.js', bytes: 5661723 },
+    parts: [{ url: 'mowa/model-pl-1.bin', bytes: 16000000 }, { url: 'mowa/model-pl-2.bin', bytes: 15903403 }],
+    key: 'pl-small-022-slim-1',                         // nazwa modelu w pamięci przeglądarki
+    flagKey: 'rozpoznawanie-interwalow.model',
+    prerollMs: 250,                                     // tyle dźwięku sprzed otwarcia okna też trafia do rozpoznawania
+    carryMs: 3000,                                      // „tercja” … „mała” wypowiedziane osobno łączymy w jedną odpowiedź
+    loadTimeoutMs: 120000,
+    // Model nie zna słów: tercja, kwinta, seksta, septyma, tryton. Zastępują je znane mu słowa
+    // o tym samym lub bardzo zbliżonym brzmieniu (tercji, kwintę, seks+ta, sep+ty+ma, try+ton).
+    grammar: ['sekunda', 'sekundę', 'tercji', 'kwarta', 'kwartę', 'kwintę', 'kwita', 'seks', 'ta', 'sep', 'ty', 'ma',
+              'oktawa', 'oktawę', 'try', 'ton', 'mała', 'małą', 'wielka', 'wielką', 'czysta', 'czystą',
+              'zwiększona', 'zmniejszona', '[unk]']
+  };
+  var LOCAL_NOUNS = { sekunda: 1, tercja: 1, kwarta: 1, kwinta: 1, seksta: 1, septyma: 1, oktawa: 1, tryton: 1 };
+  var LOCAL_QUALS = { 'mała': 1, wielka: 1, czysta: 1, 'zwiększona': 1, zmniejszona: 1 };
+
+  /** Zamiana tego, co zwraca model (słowa-zamienniki), na zwykłe nazwy interwałów. */
+  function canonLocal(text) {
+    var MAP = { 'sekundę': 'sekunda', 'kwartę': 'kwarta', 'oktawę': 'oktawa', 'kwintę': 'kwinta', 'kwita': 'kwinta',
+                'małą': 'mała', 'wielką': 'wielka', 'czystą': 'czysta' };
+    var FILL = { ta: 1, ty: 1, ma: 1, ton: 1, a: 1 };
+    var t = String(text || '').split(/\s+/).filter(function (w) { return w && w !== '[unk]'; });
+    var out = [], i = 0, hasNoun = false, w;
+    while (i < t.length) {
+      w = t[i];
+      if (w === 'seks') { if (t[i + 1] === 'ta') i++; w = 'seksta'; }
+      else if (w === 'sep') { if (t[i + 1] === 'ty') i++; if (t[i + 1] === 'ma') i++; w = 'septyma'; }
+      else if (w === 'try') { if (t[i + 1] === 'ton') i++; w = 'tryton'; }
+      else if (w === 'tercji') { if (t[i + 1] === 'a') i++; w = 'tercja'; }
+      else if (MAP[w]) w = MAP[w];
+      if (LOCAL_NOUNS[w]) hasNoun = true;
+      out.push(w); i++;
+    }
+    var res = [];
+    for (i = 0; i < out.length; i++) {
+      w = out[i];
+      if (!FILL[w]) { res.push(w); continue; }
+      // samotne „ta” tuż przed „czysta”/„zmniejszona” to końcówka słowa „kwinta”
+      if (w === 'ta' && !hasNoun && (out[i + 1] === 'czysta' || out[i + 1] === 'zmniejszona')) { res.push('kwinta'); hasNoun = true; }
+    }
+    // „zmniejszona” pasuje tylko do kwinty, „zwiększona” tylko do kwarty
+    if (!hasNoun && res.length === 1 && res[0] === 'zmniejszona') res = ['kwinta', 'zmniejszona'];
+    if (!hasNoun && res.length === 1 && res[0] === 'zwiększona') res = ['kwarta', 'zwiększona'];
+    return res.join(' ');
+  }
+
+  function localSpeechSupported(win) {
+    return !!(win.WebAssembly && win.Worker && win.indexedDB && win.fetch && win.Promise &&
+              (win.AudioContext || win.webkitAudioContext) &&
+              win.navigator && win.navigator.mediaDevices && win.navigator.mediaDevices.getUserMedia);
+  }
+
+  function createLocalSpeech(opts) {
+    var win = opts.win, clock = opts.clock, sink = opts.sink, doc = win.document;
+    var state = 'off', want = false;
+    var model = null, modelPromise = null, info = { phase: null, pct: 0 };
+    var ctx = null, stream = null, src = null, proc = null, mute = null, micLive = false, micOpening = false;
+    var rec = null, closing = {}, feeding = false, ring = [], ringLen = 0;
+    var pending = null, carry = null;
+
+    function setState(s) { if (state !== s) { state = s; sink.onState(s); } }
+    function progress(phase, pct) {
+      info = { phase: phase, pct: pct };
+      if (sink.onProgress) sink.onProgress(info);
+    }
+    function fatal(code) {
+      want = false;
+      closeMic(); dropRecognizer();
+      setState('error');
+      sink.onFatal(code);
+    }
+
+    /* ---------- pobieranie z paskiem postępu ---------- */
+    function fetchBytes(url, onBytes) {
+      return win.fetch(url).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + url);
+        if (!res.body || !res.body.getReader) {
+          return res.arrayBuffer().then(function (buf) { onBytes(buf.byteLength); return [buf]; });
+        }
+        var reader = res.body.getReader(), chunks = [];
+        function pump() {
+          return reader.read().then(function (r) {
+            if (r.done) return chunks;
+            chunks.push(r.value); onBytes(r.value.byteLength);
+            return pump();
+          });
+        }
+        return pump();
+      });
+    }
+
+    /* ---------- pamięć przeglądarki (IndexedDB używane przez bibliotekę) ---------- */
+    function modelStore(mode, work) {
+      return new win.Promise(function (resolve) {
+        var done = false;
+        function finish(v) { if (!done) { done = true; resolve(v); } }
+        var req;
+        try { req = win.indexedDB.open('/vosk'); } catch (e) { finish(null); return; }
+        req.onupgradeneeded = function (e) { try { e.target.transaction.abort(); } catch (x) {} };   // bazy jeszcze nie ma
+        req.onerror = function () { finish(null); };
+        req.onblocked = function () { finish(null); };
+        req.onsuccess = function () {
+          var db = req.result;
+          if (!db.objectStoreNames.contains('FILE_DATA')) { db.close(); finish(null); return; }
+          try {
+            var tx = db.transaction('FILE_DATA', mode), store = tx.objectStore('FILE_DATA');
+            var prefix = '/vosk/' + LOCAL.key.replace(/[\W]/g, '_');
+            var range = win.IDBKeyRange.bound(prefix, prefix + '/￿');
+            var out = work(store, range);
+            tx.oncomplete = function () { db.close(); finish(out.value); };
+            tx.onerror = tx.onabort = function () { db.close(); finish(null); };
+          } catch (e) { db.close(); finish(null); }
+        };
+      });
+    }
+    function modelIsStored() {
+      var flag = null;
+      try { flag = win.localStorage.getItem(LOCAL.flagKey); } catch (e) {}
+      if (flag !== LOCAL.key) return win.Promise.resolve(false);
+      return modelStore('readonly', function (store, range) {
+        var out = { value: false }, q = store.count(range);
+        q.onsuccess = function () { out.value = q.result > 5; };
+        return out;
+      }).then(function (v) { return !!v; });
+    }
+    function removeStoredModel() {
+      try { win.localStorage.removeItem(LOCAL.flagKey); } catch (e) {}
+      return modelStore('readwrite', function (store, range) { store.delete(range); return { value: true }; });
+    }
+
+    /* ---------- biblioteka i model ---------- */
+    function loadLibrary(onBytes) {
+      if (win.Vosk) return win.Promise.resolve();
+      return fetchBytes(LOCAL.lib.url, onBytes).then(function (chunks) {
+        return new win.Promise(function (resolve, reject) {
+          var url = win.URL.createObjectURL(new win.Blob(chunks, { type: 'text/javascript' }));
+          var tag = doc.createElement('script');
+          tag.onload = function () { win.URL.revokeObjectURL(url); win.Vosk ? resolve() : reject(new Error('Vosk')); };
+          tag.onerror = function () { reject(new Error('script')); };
+          tag.src = url;
+          doc.head.appendChild(tag);
+        });
+      });
+    }
+    function startModel(url) {
+      return new win.Promise(function (resolve, reject) {
+        var m = new win.Vosk.Model(url), settled = false;
+        var timer = clock.setTimeout(function () { fail(new Error('timeout')); }, LOCAL.loadTimeoutMs);
+        function fail(err) {
+          if (settled) return; settled = true;
+          clock.clearTimeout(timer);
+          try { m.worker.terminate(); } catch (e) {}
+          reject(err);
+        }
+        m.on('load', function (msg) {
+          if (settled) return;
+          if (!msg.result) { fail(new Error('load')); return; }
+          settled = true; clock.clearTimeout(timer); resolve(m);
+        });
+        m.addEventListener('undefined', function (e) { fail(new Error((e.detail && e.detail.error) || 'model')); });   // komunikat błędu wątku
+        m.addEventListener('error', function (e) { fail(new Error('model')); });
+        if (m.worker && m.worker.addEventListener) m.worker.addEventListener('error', function () { fail(new Error('worker')); });
+      });
+    }
+    function downloadModel(got, total) {
+      progress('download', Math.round(100 * got.n / total));
+      function onBytes(n) { got.n += n; progress('download', Math.min(99, Math.round(100 * got.n / total))); }
+      var blobs = [];
+      return removeStoredModel().then(function () {
+        return LOCAL.parts.reduce(function (chain, part) {
+          return chain.then(function () { return fetchBytes(part.url, onBytes); })
+                      .then(function (chunks) { blobs.push(new win.Blob(chunks)); });
+        }, win.Promise.resolve());
+      }).then(function () {
+        progress('prepare', 100);
+        var url = win.URL.createObjectURL(new win.Blob(blobs));
+        return startModel(url + '#key=' + LOCAL.key).then(function (m) { win.URL.revokeObjectURL(url); return m; },
+                                                         function (e) { win.URL.revokeObjectURL(url); throw e; });
+      });
+    }
+    function loadModel() {
+      if (modelPromise) return modelPromise;
+      var total = LOCAL.lib.bytes + LOCAL.parts.reduce(function (a, p) { return a + p.bytes; }, 0);
+      var got = { n: 0 };
+      modelPromise = modelIsStored().then(function (stored) {
+        progress(stored ? 'prepare' : 'download', 0);
+        return loadLibrary(function (n) { got.n += n; if (!stored) progress('download', Math.round(100 * got.n / total)); })
+          .then(function () {
+            if (!stored) return downloadModel(got, total);
+            progress('prepare', 100);
+            // Model jest już w pamięci przeglądarki: adres nie zostanie pobrany, liczy się tylko klucz.
+            var dummy = new win.URL('mowa/model-pl-w-pamieci.bin', win.location.href).href + '#key=' + LOCAL.key;
+            return startModel(dummy).then(null, function () { got.n = LOCAL.lib.bytes; return downloadModel(got, total); });
+          });
+      }).then(function (m) {
+        model = m;
+        try { win.localStorage.setItem(LOCAL.flagKey, LOCAL.key); } catch (e) {}
+        m.addEventListener('result', function (e) { onMessage(e.detail, true); });
+        m.addEventListener('partialresult', function (e) { onMessage(e.detail, false); });
+        progress(null, 100);
+        return m;
+      });
+      modelPromise.then(null, function () { modelPromise = null; });   // po błędzie można spróbować ponownie
+      return modelPromise;
+    }
+
+    /* ---------- mikrofon ---------- */
+    function openMic() {
+      if (ctx || micOpening) return;
+      micOpening = true; micLive = false;
+      var AC = win.AudioContext || win.webkitAudioContext;
+      try { ctx = new AC(); if (ctx.resume) ctx.resume(); } catch (e) { micOpening = false; fatal('audio'); return; }
+      // Bez „ulepszaczy” dźwięku — tak samo jak w „Interwałach wokalnych”, żeby telefon nie przełączał głośnika w tryb rozmowy.
+      win.navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false })
+        .then(function (st) {
+          micOpening = false;
+          if (!want || !ctx) { st.getTracks().forEach(function (t) { t.stop(); }); return; }
+          stream = st;
+          st.getTracks().forEach(function (t) { t.onended = function () { if (want) fatal('no-mic'); }; });
+          src = ctx.createMediaStreamSource(st);
+          proc = ctx.createScriptProcessor(4096, 1, 1);
+          mute = ctx.createGain(); mute.gain.value = 0;
+          proc.onaudioprocess = onAudio;
+          src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+          if (ctx.resume) ctx.resume();
+        }, function (err) {
+          micOpening = false;
+          var n = err && err.name;
+          fatal(n === 'NotAllowedError' || n === 'SecurityError' || n === 'PermissionDeniedError' ? 'denied'
+              : n === 'NotReadableError' || n === 'AbortError' ? 'mic-busy' : 'no-mic');
+        });
+    }
+    function closeMic() {
+      micLive = false; ring = []; ringLen = 0;
+      if (proc) { proc.onaudioprocess = null; try { proc.disconnect(); } catch (e) {} }
+      if (src) { try { src.disconnect(); } catch (e) {} }
+      if (mute) { try { mute.disconnect(); } catch (e) {} }
+      if (stream) stream.getTracks().forEach(function (t) { t.onended = null; t.stop(); });
+      if (ctx && ctx.close) { try { ctx.close(); } catch (e) {} }
+      ctx = stream = src = proc = mute = null;
+    }
+    function onAudio(e) {
+      if (!ctx) return;
+      var chunk = new Float32Array(e.inputBuffer.getChannelData(0));
+      ring.push(chunk); ringLen += chunk.length;
+      var keep = ctx.sampleRate * LOCAL.prerollMs / 1000;
+      while (ring.length > 1 && ringLen - ring[0].length >= keep) { ringLen -= ring[0].length; ring.shift(); }
+      if (!micLive) { micLive = true; becomeReady(); }
+      if (feeding && rec) rec.acceptWaveformFloat(chunk, ctx.sampleRate);
+    }
+
+    /* ---------- rozpoznawanie ---------- */
+    function newRecognizer() {
+      rec = new model.KaldiRecognizer(ctx.sampleRate, JSON.stringify(LOCAL.grammar));
+      pending = null;
+    }
+    function dropRecognizer() {
+      if (rec) { try { rec.remove(); } catch (e) {} rec = null; }
+      feeding = false; pending = null;
+    }
+    function becomeReady() {
+      if (!want || !model || !micLive || state === 'listening') return;
+      if (!rec) newRecognizer();
+      feeding = true; carry = null;        // bez mark(): test mikrofonu słucha od razu
+      setState('listening');
+    }
+    function withCarry(text, now) {
+      if (!carry || now - carry.at > LOCAL.carryMs) return text;
+      var words = text.split(' '), has = function (set) { return words.some(function (w) { return set[w]; }); };
+      if (carry.kind === 'noun' && has(LOCAL_NOUNS)) return text;
+      if (carry.kind === 'qual' && has(LOCAL_QUALS)) return text;
+      return carry.text + ' ' + text;
+    }
+    function onMessage(msg, isFinal) {
+      if (!msg || !msg.result) return;
+      var id = msg.recognizerId, mine = rec && id === rec.id, wasClosing = !!closing[id];
+      if (isFinal && wasClosing) delete closing[id];
+      if (!mine && !(isFinal && wasClosing)) return;                  // stare rozpoznawanie poprzedniego pytania
+      var now = clock.now();
+      var text = canonLocal(isFinal ? msg.result.text : msg.result.partial);
+      if (!isFinal) {
+        if (!text) return;
+        var full = withCarry(text, now);
+        pending = { text: full, firstSeenAt: pending ? pending.firstSeenAt : now };
+        sink.onInterim(full, pending.firstSeenAt);
+        return;
+      }
+      var at = pending ? pending.firstSeenAt : now;
+      pending = null;
+      if (!text) return;
+      var whole = withCarry(text, now), parts = whole.split(' ');
+      carry = parts.length === 1 && LOCAL_NOUNS[parts[0]] ? { text: whole, kind: 'noun', at: now }
+            : parts.length === 1 && LOCAL_QUALS[parts[0]] ? { text: whole, kind: 'qual', at: now } : null;
+      sink.onFinal(whole, at, [whole]);
+    }
+
+    return {
+      /** Włącz mikrofon i rozpoznawanie (przy pierwszym użyciu pobiera dane). */
+      listen: function () {
+        want = true;
+        if (state === 'listening') return;
+        openMic();                                   // od razu, w trakcie kliknięcia użytkownika
+        if (!want) return;
+        if (model) { setState('starting'); becomeReady(); return; }
+        setState('loading');
+        loadModel().then(function () {
+          if (!want) return;
+          if (state !== 'listening') setState('starting');
+          becomeReady();
+        }, function () { if (want) fatal('model'); });
+      },
+      /**
+       * mark()     — nowe pytanie: stare rozpoznawanie idzie do kosza, dźwięk przestaje do niego trafiać.
+       * mark(true) — otwarcie okna odpowiedzi: od teraz dźwięk trafia do rozpoznawania (z krótkim zapasem wstecz).
+       */
+      mark: function (open) {
+        if (state !== 'listening' || !model || !ctx) return;
+        if (!open) { dropRecognizer(); newRecognizer(); carry = null; return; }
+        if (!rec) newRecognizer();
+        if (!feeding) {
+          for (var i = 0; i < ring.length; i++) rec.acceptWaveformFloat(ring[i], ctx.sampleRate);
+          feeding = true;
+        }
+      },
+      flush: function () {},
+      /** Koniec czasu: przestań słuchać i od razu poproś o wynik tego, co już powiedziano. */
+      finishNow: function () {
+        if (!rec) return false;
+        feeding = false;
+        closing[rec.id] = true;
+        try { rec.remove(); } catch (e) { rec = null; return false; }
+        rec = null;
+        return true;
+      },
+      /** Zatrzymaj nasłuch i zwolnij mikrofon (pobrane dane zostają w pamięci). */
+      shutdown: function () {
+        want = false;
+        dropRecognizer(); closeMic(); carry = null;
+        if (state !== 'error') setState('off');
+      },
+      pending: function () { return pending; },
+      state: function () { return state; },
+      info: function () { return info; }
+    };
+  }
+
+  /* =====================================================================
    * 5. ZASADY GRY (automat stanów; bez DOM — testowalny z symulowanym zegarem)
    *    Stany: idle | preparing | playing | answering | grace | feedback | stageup | over
    * ===================================================================== */
@@ -1048,10 +1416,13 @@
     language: 'Ta przeglądarka nie obsługuje rozpoznawania mowy po polsku.',
     service: 'Rozpoznawanie mowy nie uruchamia się poprawnie w tej przeglądarce. Spróbuj w aktualnym Chrome lub Edge.',
     unsupported: 'Ta przeglądarka nie udostępnia rozpoznawania mowy. Użyj aktualnego Chrome lub Edge.',
-    audio: 'Nie udało się uruchomić dźwięku w tej przeglądarce.'
+    audio: 'Nie udało się uruchomić dźwięku w tej przeglądarce.',
+    model: 'Nie udało się pobrać lub uruchomić danych rozpoznawania mowy. Sprawdź internet i spróbuj ponownie albo wybierz rozpoznawanie „Przeglądarki”.',
+    'mic-busy': 'Mikrofon jest zajęty przez inną aplikację albo chwilowo niedostępny. Zamknij ją i spróbuj ponownie.',
+    none: 'Ta przeglądarka nie pozwala na rozpoznawanie mowy. Użyj aktualnego Chrome, Edge, Samsung Internet lub Firefoksa.'
   };
   var MIC_TEXT = {
-    off: 'Mikrofon wyłączony', starting: 'Uruchamiam nasłuch…',
+    off: 'Mikrofon wyłączony', starting: 'Uruchamiam nasłuch…', loading: 'Przygotowuję rozpoznawanie mowy…',
     listening: 'Słucham', error: 'Problem z mikrofonem'
   };
 
@@ -1077,7 +1448,7 @@
     var el = {
       start: $('scr-start'), game: $('scr-game'), over: $('scr-over'),
       bestTop: $('best-top'), envMsg: $('env-msg'), supportMsg: $('support-msg'), startError: $('start-error'),
-      btnTest: $('btn-test'), testStatus: $('test-status'), testHeard: $('test-heard'), testResult: $('test-result'),
+      btnTest: $('btn-test'), engine: $('engine'), engLocal: $('eng-local'), engBrowser: $('eng-browser'), engineNote: $('engine-note'), testStatus: $('test-status'), testHeard: $('test-heard'), testResult: $('test-result'),
       legend: $('legend'), btnStart: $('btn-start'),
       gScore: $('g-score'), gCorrect: $('g-correct'), gBest: $('g-best'), gStage: $('g-stage'), stages: $('stages'), gauge: $('gauge'), lamps: $('lamps'), gbar: $('gbar'), gbarCover: $('gbar-cover'),
       timer: $('timer'), count: $('count'), bar: $('bar'), phase: $('phase'), banner: $('banner'),
@@ -1101,28 +1472,55 @@
     var testTimer = null;
     var game = null;
 
-    var speech = SR ? createSpeech({
-      SR: SR, clock: clock, lang: CONFIG.lang,
-      sink: {
-        onState: function (s) {
-          if (mode === 'test') renderTestState(s);
-          if (game) game.onMicState(s);
-        },
-        onInterim: function (t, at) {
-          if (mode === 'test') showTestHeard(t, false); else game.onInterim(t, at);
-        },
-        onFinal: function (t, at, alts) {
-          if (mode === 'test') showTestHeard(t, true, alts); else game.onFinal(t, at, alts);
-        },
-        onFatal: function (code) {
-          if (mode === 'test') { endTest(); el.testStatus.textContent = ERROR_TEXT[code] || 'Błąd mikrofonu.'; el.testStatus.className = 'err'; }
-          else game.onFatal(code);
-        }
+    var sink = {
+      onState: function (s) {
+        if (mode === 'test') renderTestState(s);
+        if (game) game.onMicState(s);
+      },
+      onProgress: function () {
+        if (mode === 'test') renderTestState(speech.state());
+        else if (game) render(game.state);
+      },
+      onInterim: function (t, at) {
+        if (mode === 'test') showTestHeard(t, false); else game.onInterim(t, at);
+      },
+      onFinal: function (t, at, alts) {
+        if (mode === 'test') showTestHeard(t, true, alts); else game.onFinal(t, at, alts);
+      },
+      onFatal: function (code) {
+        if (mode === 'test') { endTest(); el.testStatus.textContent = ERROR_TEXT[code] || 'Błąd mikrofonu.'; el.testStatus.className = 'err'; }
+        else game.onFatal(code);
       }
-    }) : {
-      listen: function () { game.onFatal('unsupported'); }, flush: function () {}, finishNow: function () { return false; },
+    };
+    // Dwa sposoby rozpoznawania mowy; gra korzysta z aktualnie wybranego przez wspólny obiekt „speech”.
+    var engines = {
+      local: localSpeechSupported(win) ? createLocalSpeech({ win: win, clock: clock, sink: sink }) : null,
+      browser: SR ? createSpeech({ SR: SR, clock: clock, lang: CONFIG.lang, sink: sink }) : null
+    };
+    var ENGINE_KEY = 'rozpoznawanie-interwalow.silnik';
+    var engineName = null;
+    try { engineName = win.localStorage.getItem(ENGINE_KEY); } catch (e) {}
+    if (!engines[engineName]) engineName = engines.local ? 'local' : engines.browser ? 'browser' : null;
+    var NO_ENGINE = {
+      listen: function () { game.onFatal('none'); }, flush: function () {}, finishNow: function () { return false; },
       shutdown: function () {}, mark: function () {}, pending: function () { return null; }, state: function () { return 'off'; }
     };
+    function eng() { return engines[engineName] || NO_ENGINE; }
+    var speech = {
+      listen: function () { eng().listen(); },
+      mark: function (open) { eng().mark(open); },
+      flush: function () { eng().flush(); },
+      finishNow: function () { return eng().finishNow(); },
+      shutdown: function () { eng().shutdown(); },
+      pending: function () { return eng().pending(); },
+      state: function () { return eng().state(); },
+      info: function () { var e = eng(); return e.info ? e.info() : { phase: null, pct: 0 }; }
+    };
+    function loadingText() {
+      var i = speech.info();
+      return i.phase === 'download' ? 'Pobieram dane rozpoznawania mowy: ' + i.pct + '% (tylko za pierwszym razem, ok. 38 MB)'
+                                    : 'Przygotowuję rozpoznawanie mowy…';
+    }
 
     game = createGame({
       clock: clock, audio: audio, speech: speech, rng: Math.random,
@@ -1171,9 +1569,30 @@
     }
 
     /* ---- środowisko ---- */
-    if (!SR) {
+    function renderEngine() {
+      el.engine.hidden = !(engines.local && engines.browser);
+      el.engLocal.setAttribute('aria-pressed', String(engineName === 'local'));
+      el.engBrowser.setAttribute('aria-pressed', String(engineName === 'browser'));
+      el.engineNote.textContent = engineName === 'local'
+        ? 'Nowe, testowe. Za pierwszym razem pobiera ok. 38 MB; potem działa bez internetu, a głos nie opuszcza urządzenia.'
+        : engineName === 'browser' ? 'Mowę rozpoznaje usługa przeglądarki; wymaga internetu.' : '';
+    }
+    function chooseEngine(name) {
+      if (!engines[name] || name === engineName || game.state.state !== 'idle') return;
+      endTest();
+      engineName = name;
+      try { win.localStorage.setItem(ENGINE_KEY, name); } catch (e) {}
+      el.testHeard.textContent = ''; el.testResult.textContent = '';
+      el.testStatus.className = 'muted'; el.testStatus.textContent = 'Naciśnij i powiedz np. „kwinta czysta”.';
+      renderEngine();
+    }
+    el.engLocal.addEventListener('click', function () { chooseEngine('local'); });
+    el.engBrowser.addEventListener('click', function () { chooseEngine('browser'); });
+    renderEngine();
+
+    if (!engineName) {
       el.supportMsg.hidden = false;
-      el.supportMsg.textContent = ERROR_TEXT.unsupported;
+      el.supportMsg.textContent = ERROR_TEXT.none;
       el.btnStart.disabled = true; el.btnTest.disabled = true;
     } else if (win.location.protocol === 'file:' || win.isSecureContext === false) {
       el.envMsg.hidden = false;
@@ -1182,7 +1601,12 @@
 
     /* ---- test mikrofonu ---- */
     function renderTestState(s) {
-      if (s === 'listening') { el.testStatus.textContent = 'Słucham — powiedz np. „kwinta czysta”.'; el.testStatus.className = 'ok'; }
+      if (s === 'listening') {
+        el.testStatus.textContent = 'Słucham — powiedz np. „kwinta czysta”.'; el.testStatus.className = 'ok';
+        if (testTimer != null) win.clearTimeout(testTimer);
+        testTimer = win.setTimeout(endTest, 20000);          // czas testu liczymy od chwili, gdy mikrofon naprawdę słucha
+      }
+      else if (s === 'loading') { el.testStatus.textContent = loadingText(); el.testStatus.className = 'muted'; }
       else if (s === 'starting') { el.testStatus.textContent = 'Uruchamiam nasłuch… Zezwól na mikrofon, jeśli przeglądarka o to pyta.'; el.testStatus.className = 'muted'; }
     }
     function showTestHeard(text, isFinal, alts) {
@@ -1223,7 +1647,7 @@
       el.testHeard.textContent = ''; el.testResult.textContent = '';
       el.testStatus.className = 'muted'; el.testStatus.textContent = 'Uruchamiam nasłuch…';
       speech.listen();
-      testTimer = win.setTimeout(endTest, 15000);
+      testTimer = win.setTimeout(endTest, 300000);           // zapas na pierwsze pobranie danych
     });
 
     /* ---- przyciski ---- */
@@ -1284,7 +1708,7 @@
         setText(el.gCorrect, String(S.correct));
         setText(el.gBest, String(S.best));
         var phase = {
-          preparing: 'Przygotowuję mikrofon… Zezwól na dostęp, jeśli przeglądarka o to pyta.',
+          preparing: 'Przygotowuję mikrofon i rozpoznawanie mowy… Zezwól na dostęp do mikrofonu, jeśli przeglądarka o to pyta.',
           playing: S.arming ? 'Przygotowuję mikrofon…' : 'Słuchaj…',
           answering: 'Powiedz nazwę interwału',
           grace: 'Sprawdzam odpowiedź…',
@@ -1311,7 +1735,7 @@
         }
 
         el.mic.setAttribute('data-state', S.micState);
-        setText(el.micText, MIC_TEXT[S.micState] || '');
+        setText(el.micText, S.micState === 'loading' ? loadingText() : (MIC_TEXT[S.micState] || ''));
         setText(el.heard, S.heard ? '„' + S.heard + '”' : '—');
         el.btnReplay.disabled = !(S.state === 'answering' && !S.replaying);
         setText(el.btnQuit, S.state === 'preparing' ? 'Anuluj' : 'Zakończ grę');
@@ -1384,7 +1808,7 @@
     CONFIG: CONFIG, INTERVALS: INTERVALS,
     normalizeText: normalizeText, parseAnswer: parseAnswer,
     midiToFreq: midiToFreq, pickQuestion: pickQuestion, stageLimitMs: stageLimitMs, secondsWord: secondsWord,
-    createSpeech: createSpeech, createGame: createGame, createAudio: createAudio
+    createSpeech: createSpeech, createLocalSpeech: createLocalSpeech, canonLocal: canonLocal, LOCAL: LOCAL, createGame: createGame, createAudio: createAudio
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof document !== 'undefined') {
