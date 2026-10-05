@@ -15,6 +15,10 @@ Otwórz główny plik `index.html` w przeglądarce. Gry interwałowe wymagają d
 
 Projekt korzysta z HTML, CSS i JavaScript, bez dodatkowych zależności i kompilacji.
 
+## Bramki interwałów — jak działa ocena
+
+Oceniana jest odległość między dwoma zaśpiewanymi dźwiękami (`1200 × log2(f2 / f1)` centów), a nie wysokość bezwzględna — tonacja jest dowolna. Próba jest zaliczona, gdy odległość różni się od celu o najwyżej ±50 centów (stała `TOLERANCE_CENTS` w `interwaly/index.html`). Pod grą jest przycisk **Diagnostyka** (albo adres z dopiskiem `?diag=1`): pokazuje ustawienia mikrofonu, wykryte dźwięki, pewność pomiaru, odchyłkę w centach i przyczynę braku zaliczenia.
+
 ## Dodawanie aplikacji
 
 Każda aplikacja ma własny folder z plikiem `index.html`. Kartę na stronie głównej i pozycję we wspólnym pasku dodaje wpis w `assets/apps.js`.
